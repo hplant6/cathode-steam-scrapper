@@ -127,6 +127,7 @@ export default function App() {
   const [spineLetterSpacing, setSpineLetterSpacing] = useState(0);
   const [spineBgMode, setSpineBgMode] = useState('cover'); // 'cover' | 'black' | 'white' | 'custom'
   const [spineBgMirror, setSpineBgMirror] = useState(false);
+  const [spineBgCustomUrl, setSpineBgCustomUrl] = useState(null);
 
   // Reset spine defaults when frame changes
   React.useEffect(() => {
@@ -400,6 +401,7 @@ export default function App() {
                       spineBgMode={spineBgMode}
                       spineBgColor={{ black: '#000000', white: '#ffffff', blue: '#00d1ff', red: '#be4a3c', yellow: '#dfbf28' }[spineBgMode] ?? '#000000'}
                       spineBgMirror={spineBgMirror}
+                      spineBgCustomUrl={spineBgCustomUrl}
                       box3dConfig={frame.box3dConfig}
                       dragTarget={box3dDragTarget}
                       onCanvasReady={(c) => { canvasRef.current = c; }}
@@ -572,6 +574,7 @@ export default function App() {
           spineBgMode={spineBgMode} setSpineBgMode={setSpineBgMode}
           spineBgColor={{ black: '#000000', white: '#ffffff', blue: '#00d1ff', red: '#be4a3c', yellow: '#dfbf28' }[spineBgMode] ?? '#000000'}
           spineBgMirror={spineBgMirror} setSpineBgMirror={setSpineBgMirror}
+          spineBgCustomUrl={spineBgCustomUrl} setSpineBgCustomUrl={setSpineBgCustomUrl}
           dragTarget={box3dDragTarget}
           setDragTarget={setBox3dDragTarget}
           boxartPreviewRef={boxartPreviewRef}

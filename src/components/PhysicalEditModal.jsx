@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import PhysicalPreview from './PhysicalPreview.jsx';
 import Results from './Results.jsx';
 import { EsrbPicker, ESRB_RATINGS } from './EsrbPicker.jsx';
@@ -118,7 +118,6 @@ export default function PhysicalEditModal({
         <div className={`box3d-modal-controls${mobileSheetOpen ? ' mobile-sheet-open' : ''}`}>
           <div className="mobile-sheet-handle" onClick={() => setMobileSheetOpen(v => !v)}>
             <span className="mobile-sheet-label">IMAGE CONTROLS</span>
-            <span className="mobile-sheet-icon">{mobileSheetOpen ? '−' : '+'}</span>
           </div>
           <div className="col-title">IMAGE CONTROLS</div>
 
@@ -153,6 +152,7 @@ export default function PhysicalEditModal({
             <div className="physical-controls-row">
               <LogoToggle label="COVER ART" value={coverArtOn} onChange={setCoverArtOn} />
             </div>
+            <UploadButton label="UPLOAD COVER IMAGE" onFile={(url) => onSelect({ id: `upload-cover-${Date.now()}`, full: url, thumb: url, source: 'upload' })} />
             {hasResults && (
               <Results
                 steamgrid={steamgrid} gog={gog} logos={logos}
@@ -182,6 +182,7 @@ export default function PhysicalEditModal({
                 />
               </div>
             )}
+            <UploadButton label="UPLOAD MARQUEE IMAGE" onFile={(url) => onSelectLogo({ id: `upload-logo-${Date.now()}`, full: url, thumb: url, source: 'upload' })} />
             {hasResults && (
               <Results
                 steamgrid={steamgrid} gog={gog} logos={logos}
@@ -228,6 +229,32 @@ export default function PhysicalEditModal({
 
       </div>
     </div>
+  );
+}
+
+function UploadButton({ label, onFile }) {
+  const inputRef = useRef(null);
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onFile(URL.createObjectURL(file));
+          e.target.value = '';
+        }}
+      />
+      <button type="button" className="upload-btn" onClick={() => inputRef.current?.click()}>
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 2v9M4 6l4-4 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M2 13h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+        {label}
+      </button>
+    </>
   );
 }
 

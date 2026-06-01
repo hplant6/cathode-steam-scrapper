@@ -321,7 +321,7 @@ button { font-size: 13px !important; }
   flex-direction: column;
   padding: 5px;
   overflow: hidden;
-  max-height: calc(100dvh - 48px);
+  max-height: calc(100dvh - 58px);
   background: url('/bg.png') center / cover;
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -969,6 +969,25 @@ button { font-size: 13px !important; }
 .box3d-drawer-body.open .box3d-drawer-inner { padding: 20px; overflow: hidden; }
 .drawer-divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
 
+.upload-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px dashed var(--gray-dim);
+  color: #ffffff;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: border-color 150ms, color 150ms;
+}
+.upload-btn:hover { border-color: var(--green); color: var(--green); }
+
 /* ---------- Search form (right column) ---------- */
 
 .mode-toggle {
@@ -1554,11 +1573,11 @@ button { font-size: 13px !important; }
   }
 
   .box3d-modal-preview {
-    height: calc(100dvh - 85px);
+    height: calc(100dvh - 58px);
     border: none;
     background: none;
     justify-content: center;
-    padding: 16px;
+    padding: 16px 16px 64px;
   }
 
   .box3d-modal-controls {
@@ -1566,14 +1585,15 @@ button { font-size: 13px !important; }
     bottom: 0;
     left: 0;
     right: 0;
-    height: 85px;
+    height: 58px;
     min-height: 0;
     overflow: hidden;
     border: none;
-    border-top: 1px solid var(--border);
     transition: height 300ms cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 90;
     flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
     box-sizing: border-box;
     padding: 0;
     gap: 14px;
@@ -1581,23 +1601,22 @@ button { font-size: 13px !important; }
   }
 
   .box3d-modal-controls.mobile-sheet-open {
-    height: calc(100dvh - 180px);
+    height: 90dvh;
     bottom: 0;
-    overflow-y: auto;
+    overflow-y: scroll;
     z-index: 110;
   }
 
-  .app.has-sticky-footer .box3d-modal-preview {
-    height: calc(100dvh - 85px - 52px);
+  .box3d-modal-controls.mobile-sheet-open > *:last-child {
+    padding-bottom: 24px;
   }
 
-  .app.has-sticky-footer .box3d-modal-controls {
-    bottom: 52px;
+  .app.has-sticky-footer .box3d-modal-preview {
+    height: calc(100dvh - 58px);
   }
 
   .app.has-sticky-footer .box3d-modal-controls.mobile-sheet-open {
-    bottom: 52px;
-    height: calc(100dvh - 180px - 52px);
+    height: 90dvh;
   }
 
   .box3d-modal-controls .col-title {
@@ -2055,6 +2074,31 @@ button { font-size: 13px !important; }
   }
 
 
+  .box3d-modal-controls .grid {
+    grid-template-columns: unset;
+    grid-auto-flow: column;
+    grid-template-rows: 120px;
+    grid-auto-columns: 80px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .box3d-modal-controls .grid .thumb {
+    aspect-ratio: unset;
+    width: 80px;
+    height: 120px;
+  }
+
+  .box3d-modal-controls .grid-logo {
+    grid-template-rows: 60px;
+    grid-auto-columns: 120px;
+  }
+
+  .box3d-modal-controls .grid-logo .thumb-logo {
+    width: 120px;
+    height: 60px;
+  }
+
   .box3d-modal-controls .physical-zoom-row.zoom-row-spread {
     flex-direction: column;
   }
@@ -2182,30 +2226,23 @@ button { font-size: 13px !important; }
     justify-content: center;
     position: sticky;
     top: 0;
-    height: 48px;
-    min-height: 48px;
+    height: 58px;
+    min-height: 58px;
     padding: 0 20px;
     flex-shrink: 0;
-    background: transparent;
+    background: var(--green);
     z-index: 10;
-    border: 1px solid var(--green);
+    border: none;
     cursor: pointer;
+    gap: 10px;
   }
 
   .mobile-sheet-label {
     font-family: var(--font-ui);
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 600;
     letter-spacing: 0.2em;
-    color: var(--fg);
-  }
-
-  .mobile-sheet-icon {
-    position: absolute;
-    right: 20px;
-    font-size: 20px;
-    color: var(--fg);
-    line-height: 1;
+    color: #000;
   }
 
   .mobile-tab {

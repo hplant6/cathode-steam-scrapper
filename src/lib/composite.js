@@ -567,6 +567,7 @@ export function compositeBoxart(coverImg, templateImg, coverMaskImg, spineMaskIm
     spineBgMode = 'cover',
     spineBgColor = '#000000',
     spineBgMirror = false,
+    spineBgImg = null,
     logoImg = null,
     logoTransform = null,
     spineShowText = true,
@@ -606,7 +607,10 @@ export function compositeBoxart(coverImg, templateImg, coverMaskImg, spineMaskIm
     const spineTmp = document.createElement('canvas');
     spineTmp.width = W; spineTmp.height = H;
     const stCtx = spineTmp.getContext('2d');
-    if (spineBgMode === 'cover' && coverImg) {
+    if (spineBgMode === 'custom' && spineBgImg) {
+      const spineWarped = warpPerspective(spineBgImg, box3dConfig.coverQuad, W, H, 0, spineBgTransform ?? coverTransform);
+      stCtx.drawImage(spineWarped, 0, 0);
+    } else if (spineBgMode === 'cover' && coverImg) {
       const coverWarped = warpPerspective(coverImg, box3dConfig.coverQuad, W, H, 0, coverTransform);
       let spineSource = coverImg;
       if (spineBgMirror) {

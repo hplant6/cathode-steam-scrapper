@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import BoxartPreview from './BoxartPreview.jsx';
 import FramePicker from './FramePicker.jsx';
 import Results from './Results.jsx';
@@ -23,6 +23,7 @@ export default function Box3dEditModal({
   showFrontSteamLogo, setShowFrontSteamLogo,
   box3dSteamLogoWhite, setBox3dSteamLogoWhite,
   box3dSteamLogoSrc,
+  spineBgCustomUrl, setSpineBgCustomUrl,
   onClose, onLightbox,
 }) {
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
@@ -70,6 +71,7 @@ export default function Box3dEditModal({
               spineBgMode={spineBgMode}
               spineBgColor={spineBgColor}
               spineBgMirror={spineBgMirror}
+              spineBgCustomUrl={spineBgCustomUrl}
               box3dConfig={frame.box3dConfig}
               dragTarget={dragTarget}
               onCanvasReady={onCanvasReady}
@@ -112,13 +114,13 @@ export default function Box3dEditModal({
         <div className={`box3d-modal-controls${mobileSheetOpen ? ' mobile-sheet-open' : ''}`}>
           <div className="mobile-sheet-handle" onClick={() => setMobileSheetOpen(v => !v)}>
             <span className="mobile-sheet-label">IMAGE CONTROLS</span>
-            <span className="mobile-sheet-icon">{mobileSheetOpen ? '−' : '+'}</span>
           </div>
           <div className="col-title">IMAGE CONTROLS</div>
 
           <FramePicker value={frame} onChange={setFrame} />
 
           <Box3dDrawer title="BOX COVER IMAGE" isOpen={box3dSection === 'drag'} onToggle={() => setBox3dSection(s => s === 'drag' ? null : 'drag')}>
+            <UploadButton label="UPLOAD COVER IMAGE" onFile={(url) => onSelect({ id: `upload-cover-${Date.now()}`, full: url, thumb: url, source: 'upload' })} />
             {hasResults && (
               <Results
                 steamgrid={steamgrid} gog={gog} logos={logos}
@@ -154,18 +156,23 @@ export default function Box3dEditModal({
                 </div>
               </div>
             )}
-            {!spineShowText && hasResults && (
-              <Results
-                steamgrid={steamgrid} gog={gog} logos={logos}
-                screenshots={screenshots} videos={videos}
-                selectedId={selectedId} selectedLogoId={selectedLogoId}
-                selectedScreenshotId={selectedScreenshotId} selectedVideoId={selectedVideoId}
-                onSelect={onSelect} onSelectLogo={onSelectLogo}
-                onSelectScreenshot={onSelectScreenshot} onSelectVideo={onSelectVideo}
-                useCover={useCover} useMarquee={useMarquee}
-                useScreenshot={useScreenshot} useVideo={useVideo}
-                logosOnly
-              />
+            {!spineShowText && (
+              <>
+                <UploadButton label="UPLOAD MARQUEE IMAGE" onFile={(url) => onSelectLogo({ id: `upload-logo-${Date.now()}`, full: url, thumb: url, source: 'upload' })} />
+                {hasResults && (
+                  <Results
+                    steamgrid={steamgrid} gog={gog} logos={logos}
+                    screenshots={screenshots} videos={videos}
+                    selectedId={selectedId} selectedLogoId={selectedLogoId}
+                    selectedScreenshotId={selectedScreenshotId} selectedVideoId={selectedVideoId}
+                    onSelect={onSelect} onSelectLogo={onSelectLogo}
+                    onSelectScreenshot={onSelectScreenshot} onSelectVideo={onSelectVideo}
+                    useCover={useCover} useMarquee={useMarquee}
+                    useScreenshot={useScreenshot} useVideo={useVideo}
+                    logosOnly
+                  />
+                )}
+              </>
             )}
           </Box3dDrawer>
 
@@ -173,7 +180,8 @@ export default function Box3dEditModal({
             <div className="physical-zoom-row">
               <div className="mode-toggle">
                 <button type="button" className={`mode-btn ${spineBgMode === 'cover' ? 'active' : ''}`} onClick={() => setSpineBgMode('cover')}>COVER IMAGE</button>
-                <button type="button" className={`mode-btn ${spineBgMode !== 'cover' ? 'active' : ''}`} onClick={() => { if (spineBgMode === 'cover') setSpineBgMode('black'); }}>COLOR</button>
+                <button type="button" className={`mode-btn ${spineBgMode !== 'cover' && spineBgMode !== 'custom' ? 'active' : ''}`} onClick={() => { if (spineBgMode === 'cover' || spineBgMode === 'custom') setSpineBgMode('black'); }}>COLOR</button>
+                <button type="button" className={`mode-btn ${spineBgMode === 'custom' ? 'active' : ''}`} onClick={() => setSpineBgMode('custom')}>CUSTOM</button>
               </div>
             </div>
             {spineBgMode === 'cover' && (
@@ -191,7 +199,7 @@ export default function Box3dEditModal({
                 </div>
               </div>
             )}
-            {spineBgMode !== 'cover' && (
+            {spineBgMode !== 'cover' && spineBgMode !== 'custom' && (
               <div className="spine-bg-row">
                 <button type="button" className={`spine-bg-btn black-btn${spineBgMode === 'black' ? ' active' : ''}`} onClick={() => setSpineBgMode('black')}>BLACK</button>
                 <button type="button" className={`spine-bg-btn white-btn${spineBgMode === 'white' ? ' active' : ''}`} onClick={() => setSpineBgMode('white')}>WHITE</button>
@@ -199,6 +207,12 @@ export default function Box3dEditModal({
                 <button type="button" className={`spine-bg-btn red-btn${spineBgMode === 'red' ? ' active' : ''}`} onClick={() => setSpineBgMode('red')}>RED</button>
                 <button type="button" className={`spine-bg-btn yellow-btn${spineBgMode === 'yellow' ? ' active' : ''}`} onClick={() => setSpineBgMode('yellow')}>YELLOW</button>
               </div>
+            )}
+            {spineBgMode === 'custom' && (
+              <UploadButton
+                label={spineBgCustomUrl ? 'REPLACE SPINE IMAGE' : 'UPLOAD SPINE IMAGE'}
+                onFile={(url) => setSpineBgCustomUrl(url)}
+              />
             )}
           </Box3dDrawer>
 
@@ -282,6 +296,32 @@ export default function Box3dEditModal({
 
       </div>
     </div>
+  );
+}
+
+function UploadButton({ label, onFile }) {
+  const inputRef = useRef(null);
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onFile(URL.createObjectURL(file));
+          e.target.value = '';
+        }}
+      />
+      <button type="button" className="upload-btn" onClick={() => inputRef.current?.click()}>
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 2v9M4 6l4-4 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M2 13h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+        {label}
+      </button>
+    </>
   );
 }
 

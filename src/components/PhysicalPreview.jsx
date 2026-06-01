@@ -119,7 +119,8 @@ const PhysicalPreview = forwardRef(function PhysicalPreview(
   useEffect(() => {
     if (!logoUrl) { setLogoImg(null); return; }
     let cancelled = false;
-    loadImage(`/api/proxy?url=${encodeURIComponent(logoUrl)}`)
+    const src = logoUrl.startsWith('blob:') || logoUrl.startsWith('data:') ? logoUrl : `/api/proxy?url=${encodeURIComponent(logoUrl)}`;
+    loadImage(src)
       .then((img) => { if (!cancelled) setLogoImg(img); })
       .catch(() => { if (!cancelled) setLogoImg(null); });
     return () => { cancelled = true; };
@@ -128,7 +129,8 @@ const PhysicalPreview = forwardRef(function PhysicalPreview(
   useEffect(() => {
     if (!coverUrl || !maskSrc) { setCoverImg(null); return; }
     let cancelled = false;
-    loadImage(`/api/proxy?url=${encodeURIComponent(coverUrl)}`)
+    const src = coverUrl.startsWith('blob:') || coverUrl.startsWith('data:') ? coverUrl : `/api/proxy?url=${encodeURIComponent(coverUrl)}`;
+    loadImage(src)
       .then((img) => { if (!cancelled) setCoverImg(img); })
       .catch(() => { if (!cancelled) setCoverImg(null); });
     return () => { cancelled = true; };

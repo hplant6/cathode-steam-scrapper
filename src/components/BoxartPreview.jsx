@@ -9,6 +9,7 @@ const BoxartPreview = forwardRef(function BoxartPreview(
     spineShowText = true, spineTextColor = '#ffffff',
     spineLetterSpacing = 0,
     spineBgMode = 'cover', spineBgColor = '#000000', spineBgMirror = false,
+    spineBgCustomUrl = null,
     dragTarget = 'cover', box3dConfig = BOX3D,
     defaultCoverTransform = null, defaultSpineTransform = null, defaultEsrbTransform = null, defaultLogoTransform = null,
     defaultSpineEsrbTransform = null,
@@ -42,6 +43,7 @@ const BoxartPreview = forwardRef(function BoxartPreview(
   const [logoImg, setLogoImg] = useState(null);
   const [esrbLogo, setEsrbLogo] = useState(null);
   const [steamImg, setSteamImg] = useState(null);
+  const [spineBgCustomImg, setSpineBgCustomImg] = useState(null);
   const [fontReady, setFontReady] = useState(false);
   const [hmrTick, setHmrTick] = useState(0);
   const [error, setError] = useState(null);
@@ -66,6 +68,7 @@ const BoxartPreview = forwardRef(function BoxartPreview(
           spineBgMode,
           spineBgColor,
           spineBgMirror,
+          spineBgImg: spineBgCustomImg,
           box3dConfig,
           esrbImg: esrbLogo,
           esrbTransform: esrbTransformRef.current,
@@ -163,7 +166,8 @@ const BoxartPreview = forwardRef(function BoxartPreview(
   useEffect(() => {
     if (!coverUrl) { setCoverImg(null); return; }
     let cancelled = false;
-    loadImage(`/api/proxy?url=${encodeURIComponent(coverUrl)}`)
+    const src = coverUrl.startsWith('blob:') || coverUrl.startsWith('data:') ? coverUrl : `/api/proxy?url=${encodeURIComponent(coverUrl)}`;
+    loadImage(src)
       .then((img) => { if (!cancelled) setCoverImg(img); })
       .catch(() => { if (!cancelled) setCoverImg(null); });
     return () => { cancelled = true; };
@@ -173,11 +177,22 @@ const BoxartPreview = forwardRef(function BoxartPreview(
   useEffect(() => {
     if (!logoUrl) { setLogoImg(null); return; }
     let cancelled = false;
-    loadImage(`/api/proxy?url=${encodeURIComponent(logoUrl)}`)
+    const src = logoUrl.startsWith('blob:') || logoUrl.startsWith('data:') ? logoUrl : `/api/proxy?url=${encodeURIComponent(logoUrl)}`;
+    loadImage(src)
       .then((img) => { if (!cancelled) setLogoImg(img); })
       .catch(() => { if (!cancelled) setLogoImg(null); });
     return () => { cancelled = true; };
   }, [logoUrl]);
+
+  // Load custom spine background
+  useEffect(() => {
+    if (!spineBgCustomUrl) { setSpineBgCustomImg(null); return; }
+    let cancelled = false;
+    loadImage(spineBgCustomUrl)
+      .then((img) => { if (!cancelled) setSpineBgCustomImg(img); })
+      .catch(() => { if (!cancelled) setSpineBgCustomImg(null); });
+    return () => { cancelled = true; };
+  }, [spineBgCustomUrl]);
 
   // Load ESRB logo
   useEffect(() => {
@@ -223,7 +238,7 @@ const BoxartPreview = forwardRef(function BoxartPreview(
   useLayoutEffect(() => {
     if (!fontReady) return;
     redrawRef.current?.();
-  }, [template, coverMaskImg, spineMaskImg, coverImg, logoImg, esrbLogo, steamImg, fontReady, title, spineShowText, spineTextColor, spineLetterSpacing, spineBgMode, spineBgColor, spineBgMirror, showSpineEsrb, showSpineSteam, showFrontSteam, enableDrag, onCanvasReady, hmrTick]);
+  }, [template, coverMaskImg, spineMaskImg, coverImg, logoImg, esrbLogo, steamImg, spineBgCustomImg, fontReady, title, spineShowText, spineTextColor, spineLetterSpacing, spineBgMode, spineBgColor, spineBgMirror, showSpineEsrb, showSpineSteam, showFrontSteam, enableDrag, onCanvasReady, hmrTick]);
 
   // Drag listeners
   useEffect(() => {
