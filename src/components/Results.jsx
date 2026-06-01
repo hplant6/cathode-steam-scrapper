@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 const PAGE_SIZE       = { default: 10, logo: 8, screenshot: 8, video: 8 };
-const PAGE_SIZE_PHONE = { default: 9, logo: 6, screenshot: 6, video: 8 };
+const PAGE_SIZE_PHONE = { default: 8, logo: 6, screenshot: 6, video: 8 };
 
 function useIsPhone() {
   const [phone, setPhone] = useState(() => window.matchMedia('(max-width: 768px)').matches);
@@ -18,22 +18,22 @@ export default function Results({
   steamgrid, gog, logos, screenshots, videos,
   selectedId, selectedLogoId, selectedScreenshotId, selectedVideoId,
   onSelect, onSelectLogo, onSelectScreenshot, onSelectVideo,
-  useCover, useMarquee, useScreenshot, useVideo, coversOnly = false,
+  useCover, useMarquee, useScreenshot, useVideo, coversOnly = false, logosOnly = false,
 }) {
   const coverImages = [...(steamgrid || []), ...(gog || [])];
-  const showCovers = useCover && (steamgrid != null || gog != null);
-  const showLogos = useMarquee && logos != null && logos.length > 0;
-  const showScreenshots = !coversOnly && useScreenshot && screenshots != null && screenshots.length > 0;
-  const showVideos = !coversOnly && useVideo && videos != null && videos.length > 0;
+  const showCovers = !logosOnly && useCover && (steamgrid != null || gog != null);
+  const showLogos = !coversOnly && useMarquee && logos != null && logos.length > 0;
+  const showScreenshots = !coversOnly && !logosOnly && useScreenshot && screenshots != null && screenshots.length > 0;
+  const showVideos = !coversOnly && !logosOnly && useVideo && videos != null && videos.length > 0;
   if (!showCovers && !showLogos && !showScreenshots && !showVideos) return null;
   return (
     <div className="results">
       {showCovers && (
         <>
-          <div className="results-divider" />
-          <div className="results-section-title">COVERS</div>
+          {!coversOnly && <div className="results-divider" />}
+          {!coversOnly && <div className="results-section-title">COVERS</div>}
           <ResultGroup
-            title="STEAMGRIDDB.COM / GOG"
+            title={coversOnly ? '' : 'STEAMGRIDDB.COM / GOG'}
             images={coverImages}
             selectedId={selectedId}
             onSelect={onSelect}
@@ -43,10 +43,10 @@ export default function Results({
       )}
       {showLogos && (
         <>
-          <div className="results-divider" />
-          <div className="results-section-title">MARQUEES</div>
+          {!logosOnly && <div className="results-divider" />}
+          {!logosOnly && <div className="results-section-title">MARQUEES</div>}
           <ResultGroup
-            title="STEAMGRIDDB.COM"
+            title={logosOnly ? '' : 'STEAMGRIDDB.COM'}
             images={logos}
             selectedId={selectedLogoId}
             onSelect={onSelectLogo}
@@ -111,30 +111,32 @@ function ResultGroup({ title, images, selectedId, onSelect, empty, aspect }) {
 
   return (
     <div className="result-group">
-      <div className="group-title">
-        <span>{title}</span>
-        {totalPages > 1 && (
-          <div className="group-nav">
-            <button
-              className="nav-arrow"
-              disabled={page === 0}
-              onClick={() => setPage((p) => p - 1)}
-              aria-label="Previous page"
-            >
-              <img src="/icon-arrow-left.svg" alt="" className="nav-arrow-icon" />
-            </button>
-            <span className="nav-page">{page + 1} / {totalPages}</span>
-            <button
-              className="nav-arrow"
-              disabled={page === totalPages - 1}
-              onClick={() => setPage((p) => p + 1)}
-              aria-label="Next page"
-            >
-              <img src="/icon-arrow-right.svg" alt="" className="nav-arrow-icon" />
-            </button>
-          </div>
-        )}
-      </div>
+      {(title || totalPages > 1) && (
+        <div className="group-title" style={!title ? { justifyContent: 'flex-end' } : undefined}>
+          {title && <span>{title}</span>}
+          {totalPages > 1 && (
+            <div className="group-nav">
+              <button
+                className="nav-arrow"
+                disabled={page === 0}
+                onClick={() => setPage((p) => p - 1)}
+                aria-label="Previous page"
+              >
+                <img src="/icon-arrow-left.svg" alt="" className="nav-arrow-icon" />
+              </button>
+              <span className="nav-page">{page + 1} / {totalPages}</span>
+              <button
+                className="nav-arrow"
+                disabled={page === totalPages - 1}
+                onClick={() => setPage((p) => p + 1)}
+                aria-label="Next page"
+              >
+                <img src="/icon-arrow-right.svg" alt="" className="nav-arrow-icon" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
       {images.length === 0 ? (
         <div className="empty">{empty}</div>
       ) : (

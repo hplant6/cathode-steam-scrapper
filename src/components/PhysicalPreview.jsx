@@ -1,8 +1,8 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
-import { compositePhysical, loadImage } from '../lib/compositePhysical.js';
+import { compositePhysical, hitTestPhysicalLogos, loadImage } from '../lib/compositePhysical.js';
 
 const PhysicalPreview = forwardRef(function PhysicalPreview(
-  { logoUrl, coverUrl, diskSrc = '/physical-cd1.png', maskSrc = null, flip = false, layout = null, steamLogoSrc = null, dvdLogoSrc = null, showSteamLogo = true, showDvdLogo = true, showMarquee = true, defaultScale = 1.21, onCanvasReady, dragTarget = 'cover', enableDrag = false },
+  { logoUrl, coverUrl, diskSrc = '/physical-cd1.png', maskSrc = null, flip = false, layout = null, steamLogoSrc = null, dvdLogoSrc = null, esrbLogoSrc = null, showSteamLogo = true, showDvdLogo = true, showMarquee = true, defaultScale = 1.21, onCanvasReady, dragTarget = 'cover', enableDrag = false, onDragTargetChange = null },
   ref
 ) {
   const containerRef = useRef(null);
@@ -15,6 +15,7 @@ const PhysicalPreview = forwardRef(function PhysicalPreview(
   const [maskImg, setMaskImg] = useState(null);
   const [steamLogo, setSteamLogo] = useState(null);
   const [dvdLogo, setDvdLogo] = useState(null);
+  const [esrbLogo, setEsrbLogo] = useState(null);
   const [logoImg, setLogoImg] = useState(null);
   const [coverImg, setCoverImg] = useState(null);
   const [error, setError] = useState(null);
@@ -24,12 +25,16 @@ const PhysicalPreview = forwardRef(function PhysicalPreview(
   const logoTransformRef   = useRef({ x: 0, y: 0, scale: 1 });
   const steamTransformRef  = useRef({ x: 0, y: 0, scale: 1 });
   const dvdTransformRef    = useRef({ x: 0, y: 0, scale: 1 });
+  const esrbTransformRef   = useRef({ x: 0, y: 0, scale: 1.1025 });
 
   const getTransformRef = (target) =>
     target === 'logo'  ? logoTransformRef  :
     target === 'steam' ? steamTransformRef :
     target === 'dvd'   ? dvdTransformRef   :
+    target === 'esrb'  ? esrbTransformRef  :
     coverTransformRef;
+
+  const pinchRef = useRef(null);
 
   // Always-current draw function — reassigned each render so it closes over latest props/state
   const redrawRef = useRef(null);
@@ -40,7 +45,8 @@ const PhysicalPreview = forwardRef(function PhysicalPreview(
         logoImg, diskTemplate, showSteamLogo ? steamLogo : null,
         flip, coverImg, maskImg, coverTransformRef.current, layout,
         showDvdLogo ? dvdLogo : null, showMarquee,
-        logoTransformRef.current, steamTransformRef.current, dvdTransformRef.current
+        logoTransformRef.current, steamTransformRef.current, dvdTransformRef.current,
+        esrbLogo, esrbTransformRef.current
       );
       const container = containerRef.current;
       container.innerHTML = '';
@@ -55,12 +61,15 @@ const PhysicalPreview = forwardRef(function PhysicalPreview(
     }
   };
 
+  const zoomRef = useRef(null);
+  zoomRef.current = (factor) => {
+    const t = getTransformRef(dragTargetRef.current);
+    t.current = { ...t.current, scale: Math.max(0.3, Math.min(4, t.current.scale * factor)) };
+    redrawRef.current?.();
+  };
+
   useImperativeHandle(ref, () => ({
-    zoom: (factor) => {
-      const t = getTransformRef(dragTargetRef.current);
-      t.current = { ...t.current, scale: Math.max(0.3, Math.min(4, t.current.scale * factor)) };
-      redrawRef.current?.();
-    },
+    zoom: (factor) => zoomRef.current?.(factor),
   }));
 
   useEffect(() => {
@@ -99,6 +108,15 @@ const PhysicalPreview = forwardRef(function PhysicalPreview(
   }, [dvdLogoSrc]);
 
   useEffect(() => {
+    if (!esrbLogoSrc) { setEsrbLogo(null); return; }
+    let cancelled = false;
+    loadImage(esrbLogoSrc, { crossOrigin: null })
+      .then((img) => { if (!cancelled) setEsrbLogo(img); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [esrbLogoSrc]);
+
+  useEffect(() => {
     if (!logoUrl) { setLogoImg(null); return; }
     let cancelled = false;
     loadImage(`/api/proxy?url=${encodeURIComponent(logoUrl)}`)
@@ -125,12 +143,13 @@ const PhysicalPreview = forwardRef(function PhysicalPreview(
     logoTransformRef.current  = { x: 0, y: 0, scale: 1 };
     steamTransformRef.current = { x: 0, y: 0, scale: 1 };
     dvdTransformRef.current   = { x: 0, y: 0, scale: 1 };
+    esrbTransformRef.current  = { x: 0, y: 0, scale: 1.1025 };
   }, [diskSrc]);
 
   // Redraw when images or display settings change; transforms are excluded
   useLayoutEffect(() => {
     redrawRef.current?.();
-  }, [diskTemplate, maskImg, steamLogo, dvdLogo, logoImg, coverImg, showSteamLogo, showDvdLogo, showMarquee, flip, layout, enableDrag, onCanvasReady]);
+  }, [diskTemplate, maskImg, steamLogo, dvdLogo, esrbLogo, logoImg, coverImg, showSteamLogo, showDvdLogo, showMarquee, flip, layout, enableDrag, onCanvasReady]);
 
   // Drag listeners — mousemove writes directly to refs and redraws without React
   useEffect(() => {
@@ -155,9 +174,68 @@ const PhysicalPreview = forwardRef(function PhysicalPreview(
     };
   }, [maskImg, enableDrag]);
 
+  // Scroll-wheel and pinch zoom
+  useEffect(() => {
+    if (!enableDrag) return;
+    const container = containerRef.current;
+    if (!container) return;
+    const onWheel = (e) => {
+      e.preventDefault();
+      const normalized = e.deltaMode === 0 ? e.deltaY / 100 : e.deltaMode === 1 ? e.deltaY / 3 : e.deltaY;
+      zoomRef.current?.(Math.pow(0.95, normalized));
+    };
+    const onTouchStart = (e) => {
+      if (e.touches.length === 2) {
+        pinchRef.current = { dist: Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY) };
+      }
+    };
+    const onTouchMove = (e) => {
+      if (e.touches.length !== 2 || !pinchRef.current) return;
+      e.preventDefault();
+      const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      zoomRef.current?.(dist / pinchRef.current.dist);
+      pinchRef.current.dist = dist;
+    };
+    const onTouchEnd = () => { pinchRef.current = null; };
+    container.addEventListener('wheel', onWheel, { passive: false });
+    container.addEventListener('touchstart', onTouchStart, { passive: true });
+    container.addEventListener('touchmove', onTouchMove, { passive: false });
+    container.addEventListener('touchend', onTouchEnd);
+    return () => {
+      container.removeEventListener('wheel', onWheel);
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [enableDrag]);
+
   const onMouseDown = (e) => {
     if (!maskImg && !enableDrag) return;
     e.preventDefault();
+    const canvas = containerRef.current?.querySelector('canvas');
+    if (canvas && onDragTargetChange && diskTemplate) {
+      const rect = canvas.getBoundingClientRect();
+      const displayScale = rect.width / canvas.width;
+      const canvasX = (e.clientX - rect.left) / displayScale;
+      const canvasY = (e.clientY - rect.top) / displayScale;
+      const hit = hitTestPhysicalLogos(canvasX, canvasY, {
+        diskImg: diskTemplate,
+        logoImg: showMarquee ? logoImg : null,
+        steamLogoImg: showSteamLogo ? steamLogo : null,
+        dvdLogoImg: showDvdLogo ? dvdLogo : null,
+        esrbLogoImg: esrbLogo,
+        flip, maskImg, layout,
+        showMarquee, showSteamLogo, showDvdLogo,
+        logoTransform: logoTransformRef.current,
+        steamTransform: steamTransformRef.current,
+        dvdTransform: dvdTransformRef.current,
+        esrbTransform: esrbTransformRef.current,
+      });
+      if (hit) {
+        dragTargetRef.current = hit;
+        onDragTargetChange(hit);
+      }
+    }
     const t = getTransformRef(dragTargetRef.current);
     dragRef.current = { startX: e.clientX, startY: e.clientY, originX: t.current.x, originY: t.current.y };
   };

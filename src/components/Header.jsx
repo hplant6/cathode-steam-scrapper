@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-export default function Header({ onSettings }) {
+export default function Header({ onSettings, onAbout }) {
   const [hidden, setHidden] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const lastScrollY = useRef(0);
@@ -19,10 +19,8 @@ export default function Header({ onSettings }) {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const handleSettings = () => {
-    setMenuOpen(false);
-    onSettings();
-  };
+  const handleSettings = () => { setMenuOpen(false); onSettings(); };
+  const handleAbout    = () => { setMenuOpen(false); onAbout?.(); };
 
   return (
     <>
@@ -33,7 +31,7 @@ export default function Header({ onSettings }) {
           </div>
           <span className="header-title">STEAM SCRAPPER</span>
           <nav className="header-nav">
-            <a href="/about" className="header-link">ABOUT</a>
+            <button className="header-link" onClick={handleAbout}>ABOUT</button>
             <button className="header-settings-btn" onClick={onSettings}>SETTINGS</button>
           </nav>
           <button className="header-menu-btn" onClick={() => setMenuOpen(true)} aria-label="Open menu">
@@ -57,7 +55,7 @@ export default function Header({ onSettings }) {
             </button>
           </div>
           <nav className="header-overlay-nav">
-            <a href="/about" className="header-overlay-link" onClick={() => setMenuOpen(false)}>ABOUT</a>
+            <button className="header-overlay-link" onClick={handleAbout}>ABOUT</button>
             <button className="header-overlay-link" onClick={handleSettings}>SETTINGS</button>
           </nav>
         </div>

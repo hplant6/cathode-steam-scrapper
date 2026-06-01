@@ -29,6 +29,270 @@ export const FRONT_FACE = {
   },
 };
 
+// Style 1 box art (box3d-1.png / 567×878).
+// coverQuad: extends to spine left edge so the spine bg naturally shows
+// the left-edge continuation of the same warp.
+export const BOX3D = {
+  coverQuad: [
+    { x: 9,   y: 115 }, // TL — extends left to include spine face
+    { x: 546, y: 150 }, // TR
+    { x: 546, y: 832 }, // BR
+    { x: 9,   y: 862 }, // BL
+  ],
+  spineText: {
+    cx: 23, cy: 488,
+    maxLength: 700,
+    fontFamily: '"Barlow Condensed", system-ui, sans-serif',
+    fontWeight: 600,
+    fontSize: 20,
+    color: '#ffffff',
+  },
+  spineLogoArea: { cx: 23, cy: 488, maxW: 26, maxH: 680 },
+};
+
+// Style 5 — taller cover face, starts at y=20 instead of y=115
+export const BOX3D_5 = {
+  coverQuad: [
+    { x: 9,   y: 20  }, // TL
+    { x: 546, y: 64  }, // TR
+    { x: 546, y: 833 }, // BR
+    { x: 9,   y: 862 }, // BL
+  ],
+  spineText: {
+    cx: 23, cy: 441,
+    maxLength: 820,
+    fontFamily: '"Barlow Condensed", system-ui, sans-serif',
+    fontWeight: 600,
+    fontSize: 20,
+    color: '#ffffff',
+  },
+  spineLogoArea: { cx: 23, cy: 441, maxW: 26, maxH: 820 },
+};
+
+// Style 8 — BOX3D_5 quad expanded ~10px on each side to fill the wider face
+export const BOX3D_8 = {
+  coverQuad: [
+    { x: -1,  y: 10  }, // TL
+    { x: 556, y: 54  }, // TR
+    { x: 556, y: 843 }, // BR
+    { x: -1,  y: 872 }, // BL
+  ],
+  // Spine face corners (narrow left strip, steep lean to match box bottom slope)
+  spineQuad: [
+    { x: 0,  y: 25  }, // TL
+    { x: 46, y: 0   }, // TR
+    { x: 46, y: 878 }, // BR
+    { x: 0,  y: 853 }, // BL
+  ],
+  spineText: {
+    cx: 43, cy: 441,
+    maxLength: 820,
+    fontFamily: '"Barlow Condensed", system-ui, sans-serif',
+    fontWeight: 600,
+    fontSize: 20,
+    color: '#ffffff',
+  },
+  spineLogoArea: { cx: 23, cy: 441, maxW: 26, maxH: 820 },
+};
+
+function lerpQuad(quad, u, v) {
+  const [tl, tr, br, bl] = quad;
+  return {
+    x: (1-u)*(1-v)*tl.x + u*(1-v)*tr.x + u*v*br.x + (1-u)*v*bl.x,
+    y: (1-u)*(1-v)*tl.y + u*(1-v)*tr.y + u*v*br.y + (1-u)*v*bl.y,
+  };
+}
+
+// Draw ESRB badge perspective-warped onto the cover face.
+// Position (tx,ty) are pixel offsets from the default UV anchor (u=0.085, v=0.875).
+function esrbBadgeQuad(coverQuad, transform, esrbImg) {
+  const [tl, tr, , bl] = coverQuad;
+  const quadW = Math.hypot(tr.x - tl.x, tr.y - tl.y);
+  const quadH = Math.hypot(bl.x - tl.x, bl.y - tl.y);
+  const s   = transform?.scale ?? 1;
+  const tx  = transform?.x ?? 0;
+  const ty  = transform?.y ?? 0;
+  const cu  = 0.085 + tx / quadW;
+  const cv  = 0.875 + ty / quadH;
+  const buFrac = 0.13 * s;
+  const bvFrac = buFrac * (esrbImg.naturalHeight / esrbImg.naturalWidth) * (quadW / quadH);
+  return [
+    lerpQuad(coverQuad, cu - buFrac / 2, cv - bvFrac / 2), // TL
+    lerpQuad(coverQuad, cu + buFrac / 2, cv - bvFrac / 2), // TR
+    lerpQuad(coverQuad, cu + buFrac / 2, cv + bvFrac / 2), // BR
+    lerpQuad(coverQuad, cu - buFrac / 2, cv + bvFrac / 2), // BL
+  ];
+}
+
+function drawEsrbOnFace(ctx, esrbImg, coverQuad, transform, W, H) {
+  const quad = esrbBadgeQuad(coverQuad, transform, esrbImg);
+  // SVGs fail silently as WebGL textures — rasterize to a bitmap canvas first.
+  const rw = esrbImg.naturalWidth  || 200;
+  const rh = esrbImg.naturalHeight || 200;
+  const raster = document.createElement('canvas');
+  raster.width  = rw;
+  raster.height = rh;
+  raster.getContext('2d').drawImage(esrbImg, 0, 0, rw, rh);
+  const warped = warpPerspective(raster, quad, W, H, 0);
+  ctx.drawImage(warped, 0, 0);
+}
+
+// Draw ESRB badge perspective-warped onto the spine face.
+function drawEsrbOnSpine(ctx, esrbImg, spineQuad, transform, W, H) {
+  const [tl, tr, , bl] = spineQuad;
+  const quadW = Math.hypot(tr.x - tl.x, tr.y - tl.y);
+  const quadH = Math.hypot(bl.x - tl.x, bl.y - tl.y);
+  const s  = transform?.scale ?? 1;
+  const tx = transform?.x ?? 0;
+  const ty = transform?.y ?? 0;
+  const cu = 0.5 + tx / quadW;
+  const cv = 0.82 + ty / quadH;
+  const buFrac = 0.8 * s;
+  const bvFrac = buFrac * (esrbImg.naturalHeight / esrbImg.naturalWidth) * (quadW / quadH);
+  const quad = [
+    lerpQuad(spineQuad, cu - buFrac / 2, cv - bvFrac / 2),
+    lerpQuad(spineQuad, cu + buFrac / 2, cv - bvFrac / 2),
+    lerpQuad(spineQuad, cu + buFrac / 2, cv + bvFrac / 2),
+    lerpQuad(spineQuad, cu - buFrac / 2, cv + bvFrac / 2),
+  ];
+  const rw = esrbImg.naturalWidth  || 200;
+  const rh = esrbImg.naturalHeight || 200;
+  const raster = document.createElement('canvas');
+  raster.width = rw; raster.height = rh;
+  raster.getContext('2d').drawImage(esrbImg, 0, 0, rw, rh);
+  const warped = warpPerspective(raster, quad, W, H, 0);
+  ctx.drawImage(warped, 0, 0);
+}
+
+function _steamSpineQuad(spineQuad, steamImg, transform) {
+  const [tl, tr, , bl] = spineQuad;
+  const quadW = Math.hypot(tr.x - tl.x, tr.y - tl.y);
+  const quadH = Math.hypot(bl.x - tl.x, bl.y - tl.y);
+  const rw = steamImg.naturalWidth  || steamImg.width  || 295;
+  const rh = steamImg.naturalHeight || steamImg.height || 90;
+  const sc = transform?.scale ?? 1;
+  const tx = transform?.x ?? 0;
+  const ty = transform?.y ?? 0;
+  const buFrac = 0.7 * sc;
+  const bvFrac = buFrac * (rw / rh) * (quadW / quadH);
+  const cu = 0.5 + tx / quadW;
+  const cv = 0.12 + ty / quadH;
+  return [
+    lerpQuad(spineQuad, cu - buFrac / 2, cv - bvFrac / 2),
+    lerpQuad(spineQuad, cu + buFrac / 2, cv - bvFrac / 2),
+    lerpQuad(spineQuad, cu + buFrac / 2, cv + bvFrac / 2),
+    lerpQuad(spineQuad, cu - buFrac / 2, cv + bvFrac / 2),
+  ];
+}
+
+function _steamFaceQuad(coverQuad, steamImg, transform) {
+  const [tl, tr, , bl] = coverQuad;
+  const quadW = Math.hypot(tr.x - tl.x, tr.y - tl.y);
+  const quadH = Math.hypot(bl.x - tl.x, bl.y - tl.y);
+  const rw = steamImg.naturalWidth  || steamImg.width  || 295;
+  const rh = steamImg.naturalHeight || steamImg.height || 90;
+  const sc = transform?.scale ?? 1;
+  const tx = transform?.x ?? 0;
+  const ty = transform?.y ?? 0;
+  const buFrac = 0.15 * sc;
+  const bvFrac = buFrac * (rh / rw) * (quadW / quadH);
+  const cu = 0.5 + tx / quadW;
+  const cv = 0.93 + ty / quadH;
+  return [
+    lerpQuad(coverQuad, cu - buFrac / 2, cv - bvFrac / 2),
+    lerpQuad(coverQuad, cu + buFrac / 2, cv - bvFrac / 2),
+    lerpQuad(coverQuad, cu + buFrac / 2, cv + bvFrac / 2),
+    lerpQuad(coverQuad, cu - buFrac / 2, cv + bvFrac / 2),
+  ];
+}
+
+// Steam logo rotated 90° CW and perspective-warped onto the spine face (top portion).
+function drawSteamOnSpine(ctx, steamImg, spineQuad, transform, W, H) {
+  const rw = steamImg.naturalWidth  || steamImg.width  || 295;
+  const rh = steamImg.naturalHeight || steamImg.height || 90;
+  const rot = document.createElement('canvas');
+  rot.width = rh; rot.height = rw;
+  const rCtx = rot.getContext('2d');
+  rCtx.translate(rh / 2, rw / 2);
+  rCtx.rotate(Math.PI / 2);
+  rCtx.drawImage(steamImg, 0, 0, rw, rh, -rw / 2, -rh / 2, rw, rh);
+  const warped = warpPerspective(rot, _steamSpineQuad(spineQuad, steamImg, transform), W, H, 0);
+  ctx.drawImage(warped, 0, 0);
+}
+
+// Steam logo perspective-warped onto the cover face (bottom-center).
+function drawSteamOnFace(ctx, steamImg, coverQuad, transform, W, H) {
+  const rw = steamImg.naturalWidth  || steamImg.width  || 295;
+  const rh = steamImg.naturalHeight || steamImg.height || 90;
+  const raster = document.createElement('canvas');
+  raster.width = rw; raster.height = rh;
+  raster.getContext('2d').drawImage(steamImg, 0, 0, rw, rh);
+  const warped = warpPerspective(raster, _steamFaceQuad(coverQuad, steamImg, transform), W, H, 0);
+  ctx.drawImage(warped, 0, 0);
+}
+
+export function hitTestBoxartSpineSteam(px, py, steamImg, transform, spineQuad) {
+  if (!steamImg || !spineQuad) return false;
+  const quad = _steamSpineQuad(spineQuad, steamImg, transform);
+  const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const p = { x: px, y: py };
+  const signs = [cross(quad[0], quad[1], p), cross(quad[1], quad[2], p), cross(quad[2], quad[3], p), cross(quad[3], quad[0], p)];
+  return signs.every(v => v >= 0) || signs.every(v => v <= 0);
+}
+
+export function hitTestBoxartFrontSteam(px, py, steamImg, transform, coverQuad) {
+  if (!steamImg) return false;
+  const quad = _steamFaceQuad(coverQuad, steamImg, transform);
+  const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const p = { x: px, y: py };
+  const signs = [cross(quad[0], quad[1], p), cross(quad[1], quad[2], p), cross(quad[2], quad[3], p), cross(quad[3], quad[0], p)];
+  return signs.every(v => v >= 0) || signs.every(v => v <= 0);
+}
+
+export function hitTestBoxartSpineEsrb(px, py, esrbImg, transform, spineQuad) {
+  if (!esrbImg || !spineQuad) return false;
+  const [tl, tr, , bl] = spineQuad;
+  const quadW = Math.hypot(tr.x - tl.x, tr.y - tl.y);
+  const quadH = Math.hypot(bl.x - tl.x, bl.y - tl.y);
+  const s  = transform?.scale ?? 1;
+  const tx = transform?.x ?? 0;
+  const ty = transform?.y ?? 0;
+  const cu = 0.5 + tx / quadW;
+  const cv = 0.82 + ty / quadH;
+  const buFrac = 0.8 * s;
+  const bvFrac = buFrac * (esrbImg.naturalHeight / esrbImg.naturalWidth) * (quadW / quadH);
+  const quad = [
+    lerpQuad(spineQuad, cu - buFrac / 2, cv - bvFrac / 2),
+    lerpQuad(spineQuad, cu + buFrac / 2, cv - bvFrac / 2),
+    lerpQuad(spineQuad, cu + buFrac / 2, cv + bvFrac / 2),
+    lerpQuad(spineQuad, cu - buFrac / 2, cv + bvFrac / 2),
+  ];
+  const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const p = { x: px, y: py };
+  const signs = [
+    cross(quad[0], quad[1], p),
+    cross(quad[1], quad[2], p),
+    cross(quad[2], quad[3], p),
+    cross(quad[3], quad[0], p),
+  ];
+  return signs.every(s => s >= 0) || signs.every(s => s <= 0);
+}
+
+export function hitTestBoxartEsrb(px, py, esrbImg, esrbTransform, box3dConfig = BOX3D) {
+  if (!esrbImg) return false;
+  const quad = esrbBadgeQuad(box3dConfig.coverQuad, esrbTransform, esrbImg);
+  // Point-in-convex-quad via cross-product sign consistency
+  const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const p = { x: px, y: py };
+  const signs = [
+    cross(quad[0], quad[1], p),
+    cross(quad[1], quad[2], p),
+    cross(quad[2], quad[3], p),
+    cross(quad[3], quad[0], p),
+  ];
+  return signs.every(s => s >= 0) || signs.every(s => s <= 0);
+}
+
 export function loadImage(src, { crossOrigin = 'anonymous' } = {}) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -48,6 +312,8 @@ export function composite(coverImg, templateImg, opts = {}) {
   const corners = opts.corners ?? FRONT_FACE.corners;
   const perspective = opts.perspective ?? FRONT_FACE.perspective;
   const title = opts.title ?? '';
+  const coverTransform = opts.coverTransform ?? null;
+  const spineTextColor = opts.spineTextColor ?? FRONT_FACE.spine.color;
 
   const canvas = document.createElement('canvas');
   canvas.width = templateImg.naturalWidth;
@@ -57,16 +323,16 @@ export function composite(coverImg, templateImg, opts = {}) {
   if (coverImg) {
     if (perspective === 0 && isAxisAlignedRect(corners)) {
       const [tl, tr, , bl] = corners;
-      drawCoverFit(ctx, coverImg, tl.x, tl.y, tr.x - tl.x, bl.y - tl.y);
+      drawCoverFit(ctx, coverImg, tl.x, tl.y, tr.x - tl.x, bl.y - tl.y, coverTransform);
     } else {
-      const warped = warpPerspective(coverImg, corners, canvas.width, canvas.height, perspective);
+      const warped = warpPerspective(coverImg, corners, canvas.width, canvas.height, perspective, coverTransform);
       ctx.drawImage(warped, 0, 0);
     }
   }
 
   ctx.drawImage(templateImg, 0, 0);
 
-  if (title) drawSpineTitle(ctx, title);
+  if (title) drawSpineTitle(ctx, title, { ...FRONT_FACE.spine, color: spineTextColor });
 
   return canvas;
 }
@@ -74,9 +340,12 @@ export function composite(coverImg, templateImg, opts = {}) {
 // Draws the game title rotated 90° clockwise, centered over the cyan spine band.
 function drawSpineTitle(ctx, title, spine = FRONT_FACE.spine) {
   const text = title.toUpperCase();
+  const letterSpacing = spine.letterSpacing ?? 0;
   ctx.save();
   ctx.translate(spine.cx, spine.cy);
   ctx.rotate(Math.PI / 2); // 90° clockwise
+
+  ctx.letterSpacing = `${letterSpacing}px`;
 
   // Shrink the font until the rotated text fits the available spine length.
   let size = spine.fontSize;
@@ -103,22 +372,37 @@ function isAxisAlignedRect(c) {
 }
 
 // Fill the target rect with the image, cropping to preserve aspect.
-function drawCoverFit(ctx, img, dx, dy, dw, dh) {
+// Optional transform { x, y, scale } pans and zooms the cover within the rect.
+function drawCoverFit(ctx, img, dx, dy, dw, dh, transform = null) {
+  const tx = transform?.x ?? 0;
+  const ty = transform?.y ?? 0;
+  const sc = transform?.scale ?? 1;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(dx, dy, dw, dh);
+  ctx.clip();
+
+  const qcx = dx + dw / 2;
+  const qcy = dy + dh / 2;
+  ctx.translate(qcx + tx, qcy + ty);
+  ctx.scale(sc, sc);
+  ctx.translate(-qcx, -qcy);
+
   const sW = img.naturalWidth;
   const sH = img.naturalHeight;
   const srcAspect = sW / sH;
   const dstAspect = dw / dh;
   let sx = 0, sy = 0, sw = sW, sh = sH;
   if (srcAspect > dstAspect) {
-    // source wider — crop sides
     sw = sH * dstAspect;
     sx = (sW - sw) / 2;
   } else {
-    // source taller — crop top/bottom
     sh = sW / dstAspect;
     sy = (sH - sh) / 2;
   }
   ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+  ctx.restore();
 }
 
 // WebGL warp with projective texture mapping. The quad is drawn at the 4
@@ -127,7 +411,7 @@ function drawCoverFit(ctx, img, dx, dy, dw, dh) {
 // portion of the texture and the RIGHT side samples a larger portion — this
 // foreshortens the content as if the right edge is receding from the viewer.
 // `perspective` is the strength: 0 = affine, 0.6 = strong foreshortening.
-function warpPerspective(img, corners, canvasW, canvasH, perspective = 0) {
+function warpPerspective(img, corners, canvasW, canvasH, perspective = 0, coverTransform = null) {
   const canvas = document.createElement('canvas');
   canvas.width = canvasW;
   canvas.height = canvasH;
@@ -169,7 +453,7 @@ function warpPerspective(img, corners, canvasW, canvasH, perspective = 0) {
   const dstW = Math.hypot(corners[1].x - corners[0].x, corners[1].y - corners[0].y);
   const dstH = Math.hypot(corners[3].x - corners[0].x, corners[3].y - corners[0].y);
   const dstAspect = dstW / dstH;
-  const srcAspect = img.naturalWidth / img.naturalHeight;
+  const srcAspect = (img.naturalWidth || img.width) / (img.naturalHeight || img.height);
   let u0 = 0, u1 = 1, v0 = 0, v1 = 1;
   if (srcAspect > dstAspect) {
     const crop = (1 - dstAspect / srcAspect) / 2;
@@ -177,6 +461,21 @@ function warpPerspective(img, corners, canvasW, canvasH, perspective = 0) {
   } else {
     const crop = (1 - srcAspect / dstAspect) / 2;
     v0 = crop; v1 = 1 - crop;
+  }
+
+  // Apply pan/zoom transform to UV window.
+  if (coverTransform) {
+    const tx = coverTransform.x ?? 0;
+    const ty = coverTransform.y ?? 0;
+    const sc = coverTransform.scale ?? 1;
+    const uCenter = (u0 + u1) / 2 - tx / dstW;
+    const vCenter = (v0 + v1) / 2 - ty / dstH;
+    const uHalf = (u1 - u0) / 2 / sc;
+    const vHalf = (v1 - v0) / 2 / sc;
+    u0 = uCenter - uHalf;
+    u1 = uCenter + uHalf;
+    v0 = vCenter - vHalf;
+    v1 = vCenter + vHalf;
   }
 
   // Projective texture coords for the foreshortening effect.
@@ -250,6 +549,185 @@ function compileShader(gl, type, src) {
     throw new Error(gl.getShaderInfoLog(s));
   }
   return s;
+}
+
+// Multi-layer box compositor used for the new mask-based styles (box3d-1 etc.).
+// Layers (bottom-to-top):
+//   1. Cover art warped to coverQuad → clipped by coverMaskImg (front face)
+//   2. Same cover art (optionally with independent spineBgTransform) → clipped by spineMaskImg
+//   3. Spine content: rotated title text OR logo image
+//   4. templateImg overlay
+export function compositeBoxart(coverImg, templateImg, coverMaskImg, spineMaskImg, opts = {}) {
+  const W = templateImg.naturalWidth;
+  const H = templateImg.naturalHeight;
+  const {
+    title = '',
+    coverTransform = null,
+    spineBgTransform = null,
+    spineBgMode = 'cover',
+    spineBgColor = '#000000',
+    spineBgMirror = false,
+    logoImg = null,
+    logoTransform = null,
+    spineShowText = true,
+    spineTextColor = '#ffffff',
+    spineLetterSpacing = 0,
+    box3dConfig = BOX3D,
+    esrbImg = null,
+    esrbTransform = null,
+    showSpineEsrb = false,
+    spineEsrbTransform = null,
+    steamImg = null,
+    showSpineSteam = false,
+    showFrontSteam = false,
+    spineSteamTransform = null,
+    frontSteamTransform = null,
+  } = opts;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Front face layer (always needs cover art)
+  if (coverImg) {
+    const coverWarped = warpPerspective(coverImg, box3dConfig.coverQuad, W, H, 0, coverTransform);
+    const frontTmp = document.createElement('canvas');
+    frontTmp.width = W; frontTmp.height = H;
+    const ftCtx = frontTmp.getContext('2d');
+    ftCtx.drawImage(coverWarped, 0, 0);
+    ftCtx.globalCompositeOperation = 'destination-in';
+    ftCtx.drawImage(coverMaskImg, 0, 0, W, H);
+    ctx.drawImage(frontTmp, 0, 0);
+  }
+
+  // Spine background layer — cover art or solid color
+  {
+    const spineTmp = document.createElement('canvas');
+    spineTmp.width = W; spineTmp.height = H;
+    const stCtx = spineTmp.getContext('2d');
+    if (spineBgMode === 'cover' && coverImg) {
+      const coverWarped = warpPerspective(coverImg, box3dConfig.coverQuad, W, H, 0, coverTransform);
+      let spineSource = coverImg;
+      if (spineBgMirror) {
+        const mTmp = document.createElement('canvas');
+        mTmp.width = coverImg.naturalWidth || coverImg.width;
+        mTmp.height = coverImg.naturalHeight || coverImg.height;
+        const mCtx = mTmp.getContext('2d');
+        mCtx.translate(mTmp.width, 0);
+        mCtx.scale(-1, 1);
+        mCtx.drawImage(coverImg, 0, 0);
+        spineSource = mTmp;
+      }
+      const spineWarped = spineBgTransform
+        ? warpPerspective(spineSource, box3dConfig.coverQuad, W, H, 0, spineBgTransform)
+        : spineBgMirror
+          ? warpPerspective(spineSource, box3dConfig.coverQuad, W, H, 0, coverTransform)
+          : coverWarped;
+      stCtx.drawImage(spineWarped, 0, 0);
+    } else {
+      const effectiveColor = spineBgColor;
+      stCtx.fillStyle = effectiveColor;
+      stCtx.fillRect(0, 0, W, H);
+    }
+    stCtx.globalCompositeOperation = 'destination-in';
+    stCtx.drawImage(spineMaskImg, 0, 0, W, H);
+    ctx.drawImage(spineTmp, 0, 0);
+  }
+
+  // Spine content
+  if (spineShowText) {
+    if (title) {
+      const spineConfig = {
+        cx: box3dConfig.spineText.cx,
+        cy: box3dConfig.spineText.cy,
+        maxLength: box3dConfig.spineText.maxLength,
+        fontFamily: box3dConfig.spineText.fontFamily,
+        fontWeight: box3dConfig.spineText.fontWeight,
+        fontSize: box3dConfig.spineText.fontSize,
+        color: spineTextColor,
+        letterSpacing: spineLetterSpacing,
+      };
+      drawSpineTitle(ctx, title, spineConfig);
+    }
+  } else if (logoImg) {
+    const { cx, cy, maxW, maxH } = box3dConfig.spineLogoArea;
+    const s = logoTransform?.scale ?? 1;
+    // Rotated 90° CW: the logo's width becomes height and vice versa in spine space
+    const scale = Math.min((maxH * s) / logoImg.naturalWidth, (maxW * s) / logoImg.naturalHeight);
+    const dw = logoImg.naturalWidth * scale;
+    const dh = logoImg.naturalHeight * scale;
+    const tx = logoTransform?.x ?? 0;
+    const ty = logoTransform?.y ?? 0;
+    ctx.save();
+    ctx.translate(cx + tx, cy + ty);
+    ctx.rotate(Math.PI / 2);
+    ctx.drawImage(logoImg, -dw / 2, -dh / 2, dw, dh);
+    ctx.restore();
+  }
+
+  // ESRB badge on cover face (clipped by coverMask)
+  if (esrbImg) {
+    const esrbTmp = document.createElement('canvas');
+    esrbTmp.width = W; esrbTmp.height = H;
+    const eCtx = esrbTmp.getContext('2d');
+    drawEsrbOnFace(eCtx, esrbImg, box3dConfig.coverQuad, esrbTransform, W, H);
+    eCtx.globalCompositeOperation = 'destination-in';
+    eCtx.drawImage(coverMaskImg, 0, 0, W, H);
+    ctx.drawImage(esrbTmp, 0, 0);
+  }
+
+  // Steam logo on spine face (clipped by spineMask, requires spineQuad)
+  if (steamImg && showSpineSteam && box3dConfig.spineQuad) {
+    const spineSteamTmp = document.createElement('canvas');
+    spineSteamTmp.width = W; spineSteamTmp.height = H;
+    const ssCtx = spineSteamTmp.getContext('2d');
+    drawSteamOnSpine(ssCtx, steamImg, box3dConfig.spineQuad, spineSteamTransform, W, H);
+    ssCtx.globalCompositeOperation = 'destination-in';
+    ssCtx.drawImage(spineMaskImg, 0, 0, W, H);
+    ctx.drawImage(spineSteamTmp, 0, 0);
+  }
+
+  // Steam logo on cover face (clipped by coverMask)
+  if (steamImg && showFrontSteam) {
+    const frontSteamTmp = document.createElement('canvas');
+    frontSteamTmp.width = W; frontSteamTmp.height = H;
+    const fsCtx = frontSteamTmp.getContext('2d');
+    drawSteamOnFace(fsCtx, steamImg, box3dConfig.coverQuad, frontSteamTransform, W, H);
+    fsCtx.globalCompositeOperation = 'destination-in';
+    fsCtx.drawImage(coverMaskImg, 0, 0, W, H);
+    ctx.drawImage(frontSteamTmp, 0, 0);
+  }
+
+  // ESRB badge on spine face (clipped by spineMask, style-8 only)
+  if (esrbImg && showSpineEsrb && box3dConfig.spineQuad) {
+    const spineEsrbTmp = document.createElement('canvas');
+    spineEsrbTmp.width = W; spineEsrbTmp.height = H;
+    const seCtx = spineEsrbTmp.getContext('2d');
+    drawEsrbOnSpine(seCtx, esrbImg, box3dConfig.spineQuad, spineEsrbTransform, W, H);
+    seCtx.globalCompositeOperation = 'destination-in';
+    seCtx.drawImage(spineMaskImg, 0, 0, W, H);
+    ctx.drawImage(spineEsrbTmp, 0, 0);
+  }
+
+  // Template overlay
+  ctx.drawImage(templateImg, 0, 0);
+  return canvas;
+}
+
+export function hitTestBoxartLogo(px, py, logoImg, logoTransform, box3dConfig = BOX3D) {
+  if (!logoImg) return false;
+  const { cx, cy, maxW, maxH } = box3dConfig.spineLogoArea;
+  const s = logoTransform?.scale ?? 1;
+  const scale = Math.min((maxH * s) / logoImg.naturalWidth, (maxW * s) / logoImg.naturalHeight);
+  const dw = logoImg.naturalWidth * scale;
+  const dh = logoImg.naturalHeight * scale;
+  const tx = logoTransform?.x ?? 0;
+  const ty = logoTransform?.y ?? 0;
+  // Logo is drawn rotated 90° CW — swap width/height for bounding box
+  const x = cx + tx - dh / 2;
+  const y = cy + ty - dw / 2;
+  return px >= x && px <= x + dh && py >= y && py <= y + dw;
 }
 
 export function downloadCanvas(canvas, filename) {

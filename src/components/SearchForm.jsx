@@ -1,13 +1,40 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 
 export default function SearchForm({
   query, setQuery,
-  loading, onSearch, onRomSearch,
+  loading, onSearch, onRomSearch, onSearchDirect,
   mode, setMode,
   localFile, onPickFile,
+  apiKey,
 }) {
   const romInputRef = useRef(null);
-  const namingInputRef = useRef(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const [activeSuggestionId, setActiveSuggestionId] = useState(null);
+  const suppressRef = useRef(false);
+
+  // Debounced autocomplete fetch
+  useEffect(() => {
+    if (mode !== 'title' || !query.trim() || !apiKey) {
+      setSuggestions([]);
+      return;
+    }
+    if (suppressRef.current) {
+      suppressRef.current = false;
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/autocomplete?q=${encodeURIComponent(query.trim())}`, {
+          headers: { 'x-sgdb-key': apiKey },
+        });
+        const data = await res.json();
+        setSuggestions(data);
+      } catch {
+        setSuggestions([]);
+      }
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [query, mode, apiKey]);
 
   const submit = (e) => {
     e.preventDefault();
@@ -21,6 +48,12 @@ export default function SearchForm({
     const stem = file.name.replace(/\.[^.]+$/, '');
     onRomSearch(stem);
     e.target.value = '';
+  };
+
+  const selectSuggestion = (name, appId) => {
+    suppressRef.current = true;
+    setActiveSuggestionId(appId);
+    onSearchDirect(name, appId);
   };
 
   return (
@@ -51,7 +84,7 @@ export default function SearchForm({
               className="text-input"
               type="text"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => { setQuery(e.target.value); setActiveSuggestionId(null); }}
               placeholder="Enter game title"
               autoFocus
             />
@@ -59,27 +92,13 @@ export default function SearchForm({
               <button
                 type="button"
                 className="input-clear"
-                onClick={() => setQuery('')}
+                onClick={() => { setQuery(''); setSuggestions([]); setActiveSuggestionId(null); }}
                 aria-label="Clear"
               >
                 <img src="/icon-remove.svg" alt="" width="12" height="12" />
               </button>
             )}
           </div>
-          {/* USE LOCAL FILE FOR PRECISE NAMING — hidden while deciding placement
-          <div className="field">
-            <div className="label">USE LOCAL FILE FOR PRECISE NAMING</div>
-            <input
-              ref={namingInputRef}
-              type="file"
-              style={{ display: 'none' }}
-              onChange={onPickFile}
-            />
-            <button className="search-btn" onClick={() => namingInputRef.current.click()}>
-              {localFile ? localFile.stem : 'SELECT FILE'}
-            </button>
-          </div>
-          */}
         </>
       )}
 
@@ -90,6 +109,30 @@ export default function SearchForm({
             SELECT FILE
           </button>
         </>
+      )}
+
+      {mode === 'title' && suggestions.length > 0 && (
+        <div className="search-suggestions-box">
+          <div className="label">MATCHING TITLES</div>
+          <ul className="search-suggestions">
+            {suggestions.map((s) => (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  className={`search-suggestion-btn${s.id === activeSuggestionId ? ' active' : ''}`}
+                  onClick={() => selectSuggestion(s.name, s.id)}
+                >
+                  {s.name}
+                  {s.id === activeSuggestionId && (
+                    <svg className="suggestion-check" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <polyline points="1.5,6 4.5,9 10.5,3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {mode === 'title' && (
@@ -105,4 +148,3 @@ export default function SearchForm({
     </form>
   );
 }
-
