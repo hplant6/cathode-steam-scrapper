@@ -1817,6 +1817,7 @@ button { font-size: 13px !important; }
   padding: 8px 10px;
   font-size: 12px;
 }
+.queue-item.status-pending { padding-top: 14px; padding-bottom: 14px; }
 
 .queue-item.status-saved { border-color: var(--gray-dim); }
 .queue-item.status-error { border-color: #5b1f1f; }
@@ -1828,6 +1829,40 @@ button { font-size: 13px !important; }
   white-space: nowrap;
   color: var(--fg);
 }
+
+.queue-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.queue-name-wrap .pen-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  opacity: 0.35;
+  transition: opacity 150ms;
+}
+.queue-name-wrap:hover .pen-icon { opacity: 0.7; }
+
+.queue-name-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  padding: 0;
+  outline: none;
+  cursor: text;
+  transition: border-color 150ms;
+}
+.queue-name-wrap:hover .queue-name-input { border-bottom-color: var(--gray-dim); }
+.queue-name-input:focus { border-bottom-color: var(--green); }
 
 .queue-badges {
   display: flex;

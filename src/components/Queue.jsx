@@ -35,7 +35,7 @@ async function writeEntry(dirHandle, subfolder, filename, data) {
   await w.close();
 }
 
-export default function Queue({ items, onRemove, onClearAll, onStatusUpdate }) {
+export default function Queue({ items, onRemove, onClearAll, onStatusUpdate, onRename }) {
   const [dirHandle, setDirHandle] = useState(null);
   const [saving, setSaving] = useState(false);
   const [zipping, setZipping] = useState(false);
@@ -156,7 +156,19 @@ export default function Queue({ items, onRemove, onClearAll, onStatusUpdate }) {
         <ul className="queue-list">
           {items.map((item) => (
             <li key={item.id} className={`queue-item status-${item.status}`}>
-              <span className="queue-name">{item.gameName}</span>
+              {item.status === 'pending' ? (
+                <div className="queue-name-wrap">
+                  <img src="/icon-pen.svg" className="pen-icon" alt="" />
+                  <input
+                    className="queue-name-input"
+                    value={item.gameName}
+                    onChange={(e) => onRename(item.id, e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
+                  />
+                </div>
+              ) : (
+                <span className="queue-name">{item.gameName}</span>
+              )}
               <span className="queue-badges">
                 {item.coverUrl && <span className="badge">COVER</span>}
                 {item.logoUrl && <span className="badge">LOGO</span>}

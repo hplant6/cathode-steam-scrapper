@@ -321,6 +321,12 @@ export default function App() {
     );
   };
 
+  const onRenameQueueItem = (id, newName) => {
+    setQueue((prev) =>
+      prev.map((item) => item.id === id ? { ...item, gameName: newName } : item)
+    );
+  };
+
   const hasResults = steamgrid != null || gog != null;
   const hasCanvas = coverUrl != null;
   const gameName = localFile?.stem || searchedFor;
@@ -540,6 +546,7 @@ export default function App() {
             onRemove={onRemoveFromQueue}
             onClearAll={() => { onClearQueue(); setView('main'); }}
             onStatusUpdate={onStatusUpdate}
+            onRename={onRenameQueueItem}
           />
         </div>
       )}
