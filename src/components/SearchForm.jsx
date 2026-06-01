@@ -81,7 +81,7 @@ export default function SearchForm({
           <div className="label">GAME TITLE</div>
           <div className="input-wrap">
             <input
-              className="text-input"
+              className="text-input cmd-input"
               type="text"
               value={query}
               onChange={(e) => { setQuery(e.target.value); setActiveSuggestionId(null); }}

@@ -112,13 +112,14 @@ export default function App() {
   const [spineShowText, setSpineShowText] = useState(true);
   const [spineTextWhite, setSpineTextWhite] = useState(true);
   const [spineLetterSpacing, setSpineLetterSpacing] = useState(0);
-  const [spineBgMode, setSpineBgMode] = useState('black'); // 'cover' | 'black' | 'white' | 'custom'
+  const [spineBgMode, setSpineBgMode] = useState('cover'); // 'cover' | 'black' | 'white' | 'custom'
   const [spineBgMirror, setSpineBgMirror] = useState(false);
 
   // Reset spine defaults when frame changes
   React.useEffect(() => {
     setSpineShowText(frame.defaultSpineShowText ?? true);
     setShowSpineEsrb(frame.defaultSpineEsrb ?? false);
+    setSpineBgMode(frame.src === '/box3d-8.png' ? 'black' : 'cover');
   }, [frame.src]);
 
   // Reset drag target to first valid option when disk style changes
