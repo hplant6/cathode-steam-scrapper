@@ -105,6 +105,9 @@ export default function App() {
 
   const [queue, setQueue] = useState([]);
   const [view, setView] = useState('main'); // 'main' | 'queue' | 'settings' | 'about'
+  const [prevView, setPrevView] = useState('main');
+
+  const goToAbout = () => { setPrevView(view); setView('about'); };
   const [expandedPanel, setExpandedPanel] = useState(null); // null | '3dbox' | 'physical'
   const [dragTarget, setDragTarget] = useState('cover'); // 'cover' | 'logo' | 'steam' | 'dvd'
   const [box3dDragTarget, setBox3dDragTarget] = useState('cover'); // 'cover' | 'spine' | 'logo'
@@ -316,7 +319,7 @@ export default function App() {
   return (
     <div className={`app${view === 'main' && (queue.length > 0 || (hasCanvas && !!gameName)) ? ' has-sticky-footer' : ''}`}>
       <div className="sticky-header-wrap">
-        <Header onSettings={() => setView('settings')} onAbout={() => setView('about')} />
+        <Header onSettings={() => setView('settings')} onAbout={goToAbout} />
         {view === 'main' && apiKey && hasResults && (
           <div className="mobile-tabs">
             <button className={`mobile-tab${mobilePanel === 'search' ? ' active' : ''}`} onClick={() => switchPanel('search')}>SEARCH</button>
@@ -325,7 +328,7 @@ export default function App() {
         )}
       </div>
       {view === 'about' && (
-        <About onBack={() => setView('main')} />
+        <About onBack={() => setView(prevView)} />
       )}
       {view === 'settings' && (
         <ApiKeySetup currentKey={apiKey} onSave={onSaveApiKey} onBack={() => setView('main')} />
