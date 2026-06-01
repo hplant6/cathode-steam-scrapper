@@ -18,6 +18,9 @@ export default function ApiKeySetup({ currentKey = '', onSave, onBack }) {
         <p className="setup-desc">
           This app uses SteamGridDB to find game artwork. A free API key is required — it only takes a minute to get one.
         </p>
+        <p className="setup-desc">
+          Your API key is stored locally on your device and never leaves your browser except to call SteamGridDB directly.
+        </p>
         <ol className="setup-steps">
           <li>Create a free account at <strong>steamgriddb.com</strong></li>
           <li>Open your profile and go to <strong>Preferences</strong></li>
