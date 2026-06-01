@@ -142,6 +142,20 @@ export function compositePhysical(logoImg, diskImg, steamLogoImg, flip = false, 
         drawFit(ctx, logoImg, cx, marqueeCy, chordHalfW * 1.5, diskRadius * 0.30, 1, logoTransform);
       }
     }
+    if (layout) {
+      if (steamLogoImg) drawFit(ctx, steamLogoImg, layout.steamCx, layout.steamCy, layout.steamMaxW, layout.steamMaxH, layout.steamAlpha ?? 1, steamTransform);
+    } else {
+      const steamCy = flip ? cy - diskRadius * 0.36 - 120 : cy + diskRadius * 0.42 + 100;
+      if (steamLogoImg) {
+        const yFromCenter = Math.abs(steamCy - cy);
+        const chordHalfW = Math.sqrt(Math.max(0, diskRadius * diskRadius - yFromCenter * yFromCenter));
+        drawFit(ctx, steamLogoImg, cx, steamCy, chordHalfW * 1.17, diskRadius * 0.182, 1, steamTransform);
+      }
+      if (dvdLogoImg) {
+        const dvdCx = cx + diskRadius * 0.70 + 15;
+        drawFit(ctx, dvdLogoImg, dvdCx, cy, diskRadius * 0.331, diskRadius * 0.144, 1, dvdTransform);
+      }
+    }
     if (esrbLogoImg) {
       if (layout) {
         drawFit(ctx, esrbLogoImg, W * 0.14 + 40, H * 0.89, W * 0.12, H * 0.12, 1, esrbTransform);

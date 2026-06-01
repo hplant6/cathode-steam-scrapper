@@ -58,6 +58,16 @@ export default function App() {
   const [showMarquee, setShowMarquee] = useState(true);
   const [steamLogoVariant, setSteamLogoVariant] = useState('dark'); // 'light' | 'dark'
   const [dvdLogoVariant, setDvdLogoVariant] = useState('dark'); // 'light' | 'dark'
+
+  React.useEffect(() => {
+    if (coverArtOn) {
+      setSteamLogoVariant('light');
+      setDvdLogoVariant('light');
+    } else {
+      setSteamLogoVariant('dark');
+      setDvdLogoVariant('dark');
+    }
+  }, [coverArtOn]);
   const [dvdLogoType, setDvdLogoType] = useState('dvd'); // 'dvd' | 'cdrom'
   const [showEsrb, setShowEsrb] = useState(false);
   const [esrbRating, setEsrbRating] = useState('everyone');
