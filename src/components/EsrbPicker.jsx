@@ -15,11 +15,15 @@ export function EsrbPicker({ value, onChange }) {
   const [open, setOpen] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState({});
   const btnRef = useRef(null);
+  const dropdownRef = useRef(null);
   const selected = ESRB_RATINGS.find(r => r.value === value);
 
   useEffect(() => {
     const handler = (e) => {
-      if (btnRef.current && !btnRef.current.contains(e.target)) setOpen(false);
+      if (
+        btnRef.current && !btnRef.current.contains(e.target) &&
+        !(dropdownRef.current && dropdownRef.current.contains(e.target))
+      ) setOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -48,7 +52,7 @@ export function EsrbPicker({ value, onChange }) {
         </svg>
       </button>
       {open && ReactDOM.createPortal(
-        <div className="esrb-picker-dropdown" style={dropdownStyle}>
+        <div className="esrb-picker-dropdown" style={dropdownStyle} ref={dropdownRef}>
           {ESRB_RATINGS.map(r => (
             <button
               key={r.value}
