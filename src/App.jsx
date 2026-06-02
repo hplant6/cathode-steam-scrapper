@@ -33,7 +33,8 @@ export default function App() {
   const [searchedFor, setSearchedFor] = useState('');
   const [error, setError] = useState(null);
 
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState(null);         // physical media cover
+  const [box3dSelected, setBox3dSelected] = useState(null); // 3D box cover
   const [selectedLogo, setSelectedLogo] = useState(null);
   const [selectedScreenshot, setSelectedScreenshot] = useState(null);
   const [selectedVideo, setSelectedVideo] = useState(null);
@@ -194,6 +195,7 @@ export default function App() {
     setScreenshots(null);
     setVideos(null);
     setSelected(null);
+    setBox3dSelected(null);
     setSelectedLogo(null);
     setSelectedScreenshot(null);
     setSelectedVideo(null);
@@ -251,7 +253,7 @@ export default function App() {
       const allVideos = results.flatMap((r) => r.videos);
       setScreenshots(allScreenshots);
       setVideos(allVideos);
-      if (allImages[0]) setSelected(allImages[0]);
+      if (allImages[0]) { setSelected(allImages[0]); setBox3dSelected(allImages[0]); }
       if (allScreenshots[0]) setSelectedScreenshot(allScreenshots[0]);
       if (allVideos[0]) setSelectedVideo(allVideos[0]);
     } finally {
@@ -274,6 +276,7 @@ export default function App() {
   }, [doSearch]);
 
   const coverUrl = selected?.full ?? null;
+  const box3dCoverUrl = box3dSelected?.full ?? null;
 
   // Download name: local file stem → search query → fallback.
   const onDownload = () => {
@@ -328,9 +331,9 @@ export default function App() {
   };
 
   const hasResults = steamgrid != null || gog != null;
-  const hasCanvas = coverUrl != null;
+  const hasCanvas = box3dCoverUrl != null || coverUrl != null;
   const gameName = localFile?.stem || searchedFor;
-  const hasAnySelected = !!(selected || selectedLogo || selectedScreenshot || selectedVideo);
+  const hasAnySelected = !!(selected || box3dSelected || selectedLogo || selectedScreenshot || selectedVideo);
 
 
   return (
@@ -385,7 +388,7 @@ export default function App() {
                     <div style={{ position: 'relative' }}>
                     <BoxartPreview
                       ref={boxartPreviewRef}
-                      coverUrl={coverUrl}
+                      coverUrl={box3dCoverUrl}
                       title={searchedFor || 'Game Name'}
                       frameSrc={frame.src}
                       coverMaskSrc={frame.coverMask ?? null}
@@ -523,7 +526,7 @@ export default function App() {
               selectedLogoId={selectedLogo?.id}
               selectedScreenshotId={selectedScreenshot?.id}
               selectedVideoId={selectedVideo?.id}
-              onSelect={setSelected}
+              onSelect={(img) => { setSelected(img); setBox3dSelected(img); }}
               onSelectLogo={setSelectedLogo}
               onSelectScreenshot={setSelectedScreenshot}
               onSelectVideo={setSelectedVideo}
@@ -570,7 +573,7 @@ export default function App() {
       )}
       {expandedPanel === '3dbox' && (
         <Box3dEditModal
-          coverUrl={coverUrl}
+          coverUrl={box3dCoverUrl}
           title={searchedFor || 'Game Name'}
           frame={frame} setFrame={setFrame}
           logoUrl={selectedLogo?.full ?? null}
@@ -599,9 +602,9 @@ export default function App() {
           hasResults={hasResults}
           steamgrid={steamgrid} gog={gog} logos={logos}
           screenshots={screenshots} videos={videos}
-          selectedId={selected?.id} selectedLogoId={selectedLogo?.id}
+          selectedId={box3dSelected?.id} selectedLogoId={selectedLogo?.id}
           selectedScreenshotId={selectedScreenshot?.id} selectedVideoId={selectedVideo?.id}
-          onSelect={setSelected} onSelectLogo={setSelectedLogo}
+          onSelect={setBox3dSelected} onSelectLogo={setSelectedLogo}
           onSelectScreenshot={setSelectedScreenshot} onSelectVideo={setSelectedVideo}
           useCover={useCover} useMarquee={useMarquee}
           useScreenshot={useScreenshot} useVideo={useVideo}
