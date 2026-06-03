@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import JSZip from 'jszip';
 
 const FSAPI_SUPPORTED = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
@@ -35,12 +35,133 @@ async function writeEntry(dirHandle, subfolder, filename, data) {
   await w.close();
 }
 
+const REVEAL_W = 72;
+
+function QueueRow({ item, onRemove, onRename, triggerDiskRename }) {
+  const wrapRef = useRef(null);
+  const innerRef = useRef(null);
+  const startXRef = useRef(0);
+  const startYRef = useRef(0);
+  const currentOffsetRef = useRef(0);
+  const isDraggingRef = useRef(false);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const onTouchMove = (e) => {
+      if (!isDraggingRef.current) return;
+      const dx = e.touches[0].clientX - startXRef.current;
+      const dy = e.touches[0].clientY - startYRef.current;
+      if (Math.abs(dy) > Math.abs(dx) && currentOffsetRef.current === 0) {
+        isDraggingRef.current = false;
+        return;
+      }
+      e.preventDefault();
+      const offset = Math.max(-REVEAL_W * 1.5, Math.min(0, dx));
+      currentOffsetRef.current = offset;
+      if (innerRef.current) {
+        innerRef.current.style.transform = `translateX(${offset}px)`;
+        innerRef.current.style.transition = 'none';
+      }
+    };
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    return () => el.removeEventListener('touchmove', onTouchMove);
+  }, []);
+
+  const snapBack = () => {
+    if (innerRef.current) {
+      innerRef.current.style.transition = 'transform 250ms cubic-bezier(0.25, 1, 0.5, 1)';
+      innerRef.current.style.transform = 'translateX(0)';
+    }
+    currentOffsetRef.current = 0;
+  };
+
+  const onTouchStart = (e) => {
+    startXRef.current = e.touches[0].clientX;
+    startYRef.current = e.touches[0].clientY;
+    currentOffsetRef.current = 0;
+    isDraggingRef.current = true;
+  };
+
+  const onTouchEnd = () => {
+    isDraggingRef.current = false;
+    if (currentOffsetRef.current <= -(REVEAL_W / 2)) {
+      if (innerRef.current) {
+        innerRef.current.style.transition = 'transform 180ms ease';
+        innerRef.current.style.transform = 'translateX(-110%)';
+      }
+      setTimeout(() => onRemove(item.id), 170);
+    } else {
+      snapBack();
+    }
+  };
+
+  const onTouchCancel = () => {
+    isDraggingRef.current = false;
+    snapBack();
+  };
+
+  return (
+    <li
+      ref={wrapRef}
+      className="queue-swipe-wrap"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchCancel}
+    >
+      <div className="queue-swipe-reveal">
+        <img src="/icon-trash.svg" alt="" width="20" height="20" />
+      </div>
+      <div ref={innerRef} className={`queue-item status-${item.status}`}>
+        {item.status === 'pending' ? (
+          <div className="queue-name-wrap">
+            <img src="/icon-pen.svg" className="pen-icon" alt="" />
+            <input
+              className="queue-name-input"
+              value={item.gameName}
+              onChange={(e) => onRename(item.id, e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
+            />
+          </div>
+        ) : (
+          <span className="queue-name">{item.gameName}</span>
+        )}
+        <span className="queue-badges">
+          {item.coverUrl && <span className="badge">COVER</span>}
+          {item.logoUrl && <span className="badge">LOGO</span>}
+          {item.screenshotUrl && <span className="badge">SS</span>}
+          {item.videoUrl && <span className="badge">VID</span>}
+          <span className="badge">3D</span>
+        </span>
+        {item.status === 'saved' && <span className="queue-ok"><img src="/icon-check.svg" alt="saved" width="16" height="16" /></span>}
+        {item.status === 'error' && <span className="queue-err" title={item.error}><img src="/icon-remove.svg" alt="error" width="16" height="16" /></span>}
+        {item.status === 'pending' && (
+          <>
+            <button
+              className="queue-disk-btn"
+              onClick={() => triggerDiskRename(item.id)}
+              title="Select as game file to rename these assets for ES-DE"
+            >
+              <img src="/icon-disk-drive.svg" alt="rename from file" width="16" height="16" />
+            </button>
+            <button className="queue-remove" onClick={() => onRemove(item.id)}>
+              <img src="/icon-trash.svg" alt="remove" width="16" height="16" />
+            </button>
+          </>
+        )}
+      </div>
+    </li>
+  );
+}
+
 export default function Queue({ items, onRemove, onClearAll, onStatusUpdate, onRename }) {
   const [dirHandle, setDirHandle] = useState(null);
   const [saving, setSaving] = useState(false);
   const [zipping, setZipping] = useState(false);
   const diskInputRef = useRef(null);
   const renamingIdRef = useRef(null);
+
+  const hasPending = items.some((i) => i.status === 'pending');
 
   const onDiskPick = (e) => {
     const file = e.target.files?.[0];
@@ -55,8 +176,6 @@ export default function Queue({ items, onRemove, onClearAll, onStatusUpdate, onR
     renamingIdRef.current = id;
     diskInputRef.current?.click();
   };
-
-  const hasPending = items.some((i) => i.status === 'pending');
 
   const pickFolder = async () => {
     try {
@@ -172,42 +291,13 @@ export default function Queue({ items, onRemove, onClearAll, onStatusUpdate, onR
       ) : (
         <ul className="queue-list">
           {items.map((item) => (
-            <li key={item.id} className={`queue-item status-${item.status}`}>
-              {item.status === 'pending' ? (
-                <div className="queue-name-wrap">
-                  <img src="/icon-pen.svg" className="pen-icon" alt="" />
-                  <input
-                    className="queue-name-input"
-                    value={item.gameName}
-                    onChange={(e) => onRename(item.id, e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
-                  />
-                </div>
-              ) : (
-                <span className="queue-name">{item.gameName}</span>
-              )}
-              <span className="queue-badges">
-                {item.coverUrl && <span className="badge">COVER</span>}
-                {item.logoUrl && <span className="badge">LOGO</span>}
-                {item.screenshotUrl && <span className="badge">SS</span>}
-                {item.videoUrl && <span className="badge">VID</span>}
-                <span className="badge">3D</span>
-              </span>
-              {item.status === 'saved' && <span className="queue-ok"><img src="/icon-check.svg" alt="saved" width="16" height="16" /></span>}
-              {item.status === 'error' && <span className="queue-err" title={item.error}><img src="/icon-remove.svg" alt="error" width="16" height="16" /></span>}
-              {item.status === 'pending' && (
-                <>
-                  <button
-                    className="queue-disk-btn"
-                    onClick={() => triggerDiskRename(item.id)}
-                    title="Select as game file to rename these assets for ES-DE"
-                  >
-                    <img src="/icon-disk-drive.svg" alt="rename from file" width="16" height="16" />
-                  </button>
-                  <button className="queue-remove" onClick={() => onRemove(item.id)}><img src="/icon-remove.svg" alt="remove" width="16" height="16" /></button>
-                </>
-              )}
-            </li>
+            <QueueRow
+              key={item.id}
+              item={item}
+              onRemove={onRemove}
+              onRename={onRename}
+              triggerDiskRename={triggerDiskRename}
+            />
           ))}
         </ul>
       )}
