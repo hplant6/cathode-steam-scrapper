@@ -91,11 +91,101 @@ function ResultGroup({ title, images, selectedId, onSelect, empty, aspect }) {
   const [page, setPage] = useState(0);
   const isPhone = useIsPhone();
 
+  // Refs so touch handlers (registered once) always see current values
+  const vpRef = useRef(null);
+  const trackRef = useRef(null);
+  const pageRef = useRef(0);
+  const totalPagesRef = useRef(1);
+  const setPageRef = useRef(setPage);
+  const swipeStartXRef = useRef(0);
+  const swipeStartYRef = useRef(0);
+  const swipeDeltaRef = useRef(0);
+  const isSwipingRef = useRef(false);
+
+  pageRef.current = page;
+  setPageRef.current = setPage;
+
   useEffect(() => { setPage(0); }, [images]);
 
   const sizes = isPhone ? PAGE_SIZE_PHONE : PAGE_SIZE;
   const pageSize = sizes[aspect] ?? sizes.default;
   const totalPages = Math.max(1, Math.ceil(images.length / pageSize));
+  totalPagesRef.current = totalPages;
+
+  useEffect(() => {
+    const el = vpRef.current;
+    if (!el) return;
+
+    const settle = (newPage) => {
+      if (trackRef.current) {
+        trackRef.current.style.transition = 'transform 300ms ease-out';
+        trackRef.current.style.transform = `translateX(calc(-${newPage} * 100%))`;
+        // Release inline transition so arrow-button clicks animate via CSS again
+        setTimeout(() => { if (trackRef.current) trackRef.current.style.transition = ''; }, 310);
+      }
+      if (newPage !== pageRef.current) setPageRef.current(newPage);
+    };
+
+    const onTouchStart = (e) => {
+      swipeStartXRef.current = e.touches[0].clientX;
+      swipeStartYRef.current = e.touches[0].clientY;
+      swipeDeltaRef.current = 0;
+      isSwipingRef.current = true;
+    };
+
+    const onTouchMove = (e) => {
+      if (!isSwipingRef.current) return;
+      const dx = e.touches[0].clientX - swipeStartXRef.current;
+      const dy = e.touches[0].clientY - swipeStartYRef.current;
+      // Cancel if primarily vertical and we haven't started horizontal yet
+      if (Math.abs(dy) > Math.abs(dx) && swipeDeltaRef.current === 0) {
+        isSwipingRef.current = false;
+        return;
+      }
+      e.preventDefault();
+      const pg = pageRef.current;
+      const total = totalPagesRef.current;
+      // Rubber-band resistance at the first/last page edges
+      const atEdge = (pg === 0 && dx > 0) || (pg === total - 1 && dx < 0);
+      const offset = atEdge ? dx / 3 : dx;
+      swipeDeltaRef.current = offset;
+      if (trackRef.current) {
+        trackRef.current.style.transition = 'none';
+        trackRef.current.style.transform = `translateX(calc(-${pg} * 100% + ${offset}px))`;
+      }
+    };
+
+    const onTouchEnd = () => {
+      if (!isSwipingRef.current) return;
+      isSwipingRef.current = false;
+      const dx = swipeDeltaRef.current;
+      swipeDeltaRef.current = 0;
+      const pg = pageRef.current;
+      const total = totalPagesRef.current;
+      let newPage = pg;
+      if (dx < -60 && pg < total - 1) newPage = pg + 1;
+      else if (dx > 60 && pg > 0) newPage = pg - 1;
+      settle(newPage);
+    };
+
+    const onTouchCancel = () => {
+      if (!isSwipingRef.current) return;
+      isSwipingRef.current = false;
+      swipeDeltaRef.current = 0;
+      settle(pageRef.current);
+    };
+
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd);
+    el.addEventListener('touchcancel', onTouchCancel);
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchCancel);
+    };
+  }, []);
 
   const gridClass = [
     'grid carousel-page',
@@ -140,8 +230,9 @@ function ResultGroup({ title, images, selectedId, onSelect, empty, aspect }) {
       {images.length === 0 ? (
         <div className="empty">{empty}</div>
       ) : (
-        <div className={vpClass}>
+        <div ref={vpRef} className={vpClass}>
           <div
+            ref={trackRef}
             className="carousel-track"
             style={{ transform: `translateX(calc(-${page} * 100%))` }}
           >
