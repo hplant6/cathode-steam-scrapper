@@ -73,7 +73,7 @@ export default function PhysicalEditModal({
               esrbLogoSrc={esrbLogoSrc}
               showSteamLogo={showSteamLogo}
               showDvdLogo={showDvdLogo}
-              showMarquee={!diskChoice.mask ? true : showMarquee}
+              showMarquee={showMarquee}
               onCanvasReady={onCanvasReady}
             />
             <button className="asset-zoom-btn" onClick={onLightbox}>
@@ -118,7 +118,11 @@ export default function PhysicalEditModal({
         <div className={`box3d-modal-controls${mobileSheetOpen ? ' mobile-sheet-open' : ''}`}>
           <div className="mobile-sheet-handle" onClick={() => setMobileSheetOpen(v => !v)}>
             <span className="mobile-sheet-label">IMAGE CONTROLS</span>
+            <svg className={`mobile-sheet-caret${mobileSheetOpen ? ' open' : ''}`} viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <polyline points="2,4 6,8 10,4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </div>
+          <div className="mobile-sheet-content">
           <div className="col-title">IMAGE CONTROLS</div>
 
           {/* Physical media type selector */}
@@ -173,7 +177,7 @@ export default function PhysicalEditModal({
             isOpen={section === 'marquee'}
             onToggle={() => toggleSection('marquee', 'logo')}
           >
-            {!diskChoice.noMarquee && !diskChoice.noMarqueeToggle && (
+            {(
               <div className="physical-controls-row">
                 <LogoToggle
                   label="MARQUEE"
@@ -225,6 +229,7 @@ export default function PhysicalEditModal({
             />
           </PhysicalDrawer>
 
+          </div>{/* mobile-sheet-content */}
         </div>
 
       </div>

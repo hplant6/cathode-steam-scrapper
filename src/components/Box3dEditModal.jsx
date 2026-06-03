@@ -114,7 +114,11 @@ export default function Box3dEditModal({
         <div className={`box3d-modal-controls${mobileSheetOpen ? ' mobile-sheet-open' : ''}`}>
           <div className="mobile-sheet-handle" onClick={() => setMobileSheetOpen(v => !v)}>
             <span className="mobile-sheet-label">IMAGE CONTROLS</span>
+            <svg className={`mobile-sheet-caret${mobileSheetOpen ? ' open' : ''}`} viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <polyline points="2,4 6,8 10,4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </div>
+          <div className="mobile-sheet-content">
           <div className="col-title">IMAGE CONTROLS</div>
 
           <FramePicker value={frame} onChange={setFrame} />
@@ -292,6 +296,7 @@ export default function Box3dEditModal({
               </>
             )}
           </Box3dDrawer>
+          </div>{/* mobile-sheet-content */}
         </div>
 
       </div>

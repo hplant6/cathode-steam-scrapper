@@ -446,7 +446,7 @@ export default function App() {
                         esrbLogoSrc={esrbLogoSrc}
                         showSteamLogo={showSteamLogo}
                         showDvdLogo={showDvdLogo}
-                        showMarquee={!diskChoice.mask ? true : showMarquee}
+                        showMarquee={showMarquee}
                         onCanvasReady={(c) => { physicalCanvasRef.current = c; }}
                       />
                     </div>
@@ -494,7 +494,7 @@ export default function App() {
         </div>
 
         <div className="right-col">
-          <div className="col-title">SELECT GAME ASSETS</div>
+          <div className="col-title">SELECT ASSETS</div>
           <SearchForm
             query={query} setQuery={setQuery}
             loading={loading} onSearch={onSearch} onRomSearch={onRomSearch}
