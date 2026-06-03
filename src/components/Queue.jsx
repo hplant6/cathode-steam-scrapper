@@ -143,6 +143,13 @@ function QueueRow({ item, onRemove, onRename, triggerDiskRename }) {
       <div ref={innerRef} className={`queue-item status-${item.status}`}>
         {item.status === 'pending' ? (
           <div className="queue-name-wrap">
+            <button
+              className="queue-disk-btn"
+              onClick={() => triggerDiskRename(item.id)}
+              title="Select as game file to rename these assets for ES-DE"
+            >
+              <img src="/icon-disk-drive.svg" alt="rename from file" width="16" height="16" />
+            </button>
             <img src="/icon-pen.svg" className="pen-icon" alt="" />
             <input
               className="queue-name-input"
@@ -164,18 +171,9 @@ function QueueRow({ item, onRemove, onRename, triggerDiskRename }) {
         {item.status === 'saved' && <span className="queue-ok"><img src="/icon-check.svg" alt="saved" width="16" height="16" /></span>}
         {item.status === 'error' && <span className="queue-err" title={item.error}><img src="/icon-remove.svg" alt="error" width="16" height="16" /></span>}
         {item.status === 'pending' && (
-          <>
-            <button
-              className="queue-disk-btn"
-              onClick={() => triggerDiskRename(item.id)}
-              title="Select as game file to rename these assets for ES-DE"
-            >
-              <img src="/icon-disk-drive.svg" alt="rename from file" width="16" height="16" />
-            </button>
-            <button className="queue-remove" onClick={() => onRemove(item.id)}>
-              <img src="/icon-trash.svg" alt="remove" width="16" height="16" />
-            </button>
-          </>
+          <button className="queue-remove" onClick={() => onRemove(item.id)}>
+            <img src="/icon-trash.svg" alt="remove" width="16" height="16" />
+          </button>
         )}
       </div>
     </li>
