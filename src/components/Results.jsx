@@ -142,7 +142,8 @@ function ResultGroup({ title, images, selectedId, onSelect, empty, aspect }) {
         isSwipingRef.current = false;
         return;
       }
-      e.preventDefault();
+      // No e.preventDefault() needed — touch-action: pan-y on the viewport
+      // handles vertical scroll natively, so clicks are never suppressed
       const pg = pageRef.current;
       const total = totalPagesRef.current;
       // Rubber-band resistance at the first/last page edges
@@ -176,9 +177,9 @@ function ResultGroup({ title, images, selectedId, onSelect, empty, aspect }) {
     };
 
     el.addEventListener('touchstart', onTouchStart, { passive: true });
-    el.addEventListener('touchmove', onTouchMove, { passive: false });
-    el.addEventListener('touchend', onTouchEnd);
-    el.addEventListener('touchcancel', onTouchCancel);
+    el.addEventListener('touchmove', onTouchMove, { passive: true });
+    el.addEventListener('touchend', onTouchEnd, { passive: true });
+    el.addEventListener('touchcancel', onTouchCancel, { passive: true });
     return () => {
       el.removeEventListener('touchstart', onTouchStart);
       el.removeEventListener('touchmove', onTouchMove);

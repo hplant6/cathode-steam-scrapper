@@ -1397,6 +1397,7 @@ button { font-size: 13px !important; }
 
 .carousel-viewport {
   overflow-x: hidden;
+  touch-action: pan-y; /* browser owns vertical scroll; we own horizontal swipe */
 }
 
 .carousel-track {
