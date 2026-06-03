@@ -2280,7 +2280,7 @@ button { font-size: 13px !important; }
     min-height: 58px;
     padding: 0 20px;
     flex-shrink: 0;
-    background: var(--green);
+    background: var(--gray-dim);
     z-index: 10;
     border: none;
     cursor: pointer;
@@ -2292,13 +2292,13 @@ button { font-size: 13px !important; }
     font-size: 13px;
     font-weight: 600;
     letter-spacing: 0.2em;
-    color: #000;
+    color: var(--green);
   }
 
   .mobile-sheet-caret {
     width: 16px;
     height: 16px;
-    color: #000;
+    color: var(--green);
     transition: transform 250ms ease;
     transform: rotate(0deg);
     flex-shrink: 0;
