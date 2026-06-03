@@ -1845,7 +1845,10 @@ button { font-size: 13px !important; }
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  transition: background 120ms;
 }
+.queue-swipe-reveal:hover { background: #8b1f1f; }
 
 .queue-item {
   display: flex;

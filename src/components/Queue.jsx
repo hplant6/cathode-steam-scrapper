@@ -36,14 +36,45 @@ async function writeEntry(dirHandle, subfolder, filename, data) {
 }
 
 const REVEAL_W = 72;
+const DELETE_EXTRA = 30; // px past the reveal edge that triggers instant delete
 
 function QueueRow({ item, onRemove, onRename, triggerDiskRename }) {
   const wrapRef = useRef(null);
   const innerRef = useRef(null);
   const startXRef = useRef(0);
   const startYRef = useRef(0);
+  const baseOffsetRef = useRef(0);   // offset at the start of each gesture
   const currentOffsetRef = useRef(0);
   const isDraggingRef = useRef(false);
+  const onRemoveRef = useRef(onRemove);
+  onRemoveRef.current = onRemove;
+  const doDeleteRef = useRef(null);
+
+  const doDelete = () => {
+    isDraggingRef.current = false;
+    if (innerRef.current) {
+      innerRef.current.style.transition = 'transform 180ms ease';
+      innerRef.current.style.transform = 'translateX(-110%)';
+    }
+    setTimeout(() => onRemoveRef.current(item.id), 170);
+  };
+  doDeleteRef.current = doDelete;
+
+  const snapToOpen = () => {
+    if (innerRef.current) {
+      innerRef.current.style.transition = 'transform 200ms cubic-bezier(0.25, 1, 0.5, 1)';
+      innerRef.current.style.transform = `translateX(${-REVEAL_W}px)`;
+    }
+    currentOffsetRef.current = -REVEAL_W;
+  };
+
+  const snapToClose = () => {
+    if (innerRef.current) {
+      innerRef.current.style.transition = 'transform 250ms cubic-bezier(0.25, 1, 0.5, 1)';
+      innerRef.current.style.transform = 'translateX(0)';
+    }
+    currentOffsetRef.current = 0;
+  };
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -52,15 +83,23 @@ function QueueRow({ item, onRemove, onRename, triggerDiskRename }) {
       if (!isDraggingRef.current) return;
       const dx = e.touches[0].clientX - startXRef.current;
       const dy = e.touches[0].clientY - startYRef.current;
-      if (Math.abs(dy) > Math.abs(dx) && currentOffsetRef.current === 0) {
+      // Ignore primarily-vertical touches only when starting from closed
+      if (Math.abs(dy) > Math.abs(dx) && baseOffsetRef.current === 0 && currentOffsetRef.current === 0) {
         isDraggingRef.current = false;
         return;
       }
       e.preventDefault();
-      const offset = Math.max(-REVEAL_W * 1.5, Math.min(0, dx));
-      currentOffsetRef.current = offset;
+      const tentative = Math.min(0, baseOffsetRef.current + dx);
+      // Past delete threshold → remove immediately
+      if (tentative <= -(REVEAL_W + DELETE_EXTRA)) {
+        doDeleteRef.current();
+        return;
+      }
+      // Cap visual travel at the reveal edge
+      const visual = Math.max(-REVEAL_W, tentative);
+      currentOffsetRef.current = visual;
       if (innerRef.current) {
-        innerRef.current.style.transform = `translateX(${offset}px)`;
+        innerRef.current.style.transform = `translateX(${visual}px)`;
         innerRef.current.style.transition = 'none';
       }
     };
@@ -68,37 +107,26 @@ function QueueRow({ item, onRemove, onRename, triggerDiskRename }) {
     return () => el.removeEventListener('touchmove', onTouchMove);
   }, []);
 
-  const snapBack = () => {
-    if (innerRef.current) {
-      innerRef.current.style.transition = 'transform 250ms cubic-bezier(0.25, 1, 0.5, 1)';
-      innerRef.current.style.transform = 'translateX(0)';
-    }
-    currentOffsetRef.current = 0;
-  };
-
   const onTouchStart = (e) => {
     startXRef.current = e.touches[0].clientX;
     startYRef.current = e.touches[0].clientY;
-    currentOffsetRef.current = 0;
+    baseOffsetRef.current = currentOffsetRef.current; // carry open/closed state
     isDraggingRef.current = true;
   };
 
   const onTouchEnd = () => {
     isDraggingRef.current = false;
+    // Snap open if past halfway, otherwise close
     if (currentOffsetRef.current <= -(REVEAL_W / 2)) {
-      if (innerRef.current) {
-        innerRef.current.style.transition = 'transform 180ms ease';
-        innerRef.current.style.transform = 'translateX(-110%)';
-      }
-      setTimeout(() => onRemove(item.id), 170);
+      snapToOpen();
     } else {
-      snapBack();
+      snapToClose();
     }
   };
 
   const onTouchCancel = () => {
     isDraggingRef.current = false;
-    snapBack();
+    snapToClose();
   };
 
   return (
@@ -109,8 +137,8 @@ function QueueRow({ item, onRemove, onRename, triggerDiskRename }) {
       onTouchEnd={onTouchEnd}
       onTouchCancel={onTouchCancel}
     >
-      <div className="queue-swipe-reveal">
-        <img src="/icon-trash.svg" alt="" width="20" height="20" />
+      <div className="queue-swipe-reveal" onClick={doDelete}>
+        <img src="/icon-trash.svg" alt="delete" width="20" height="20" />
       </div>
       <div ref={innerRef} className={`queue-item status-${item.status}`}>
         {item.status === 'pending' ? (
