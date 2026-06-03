@@ -10,6 +10,7 @@ export default function SearchForm({
   const romInputRef = useRef(null);
   const [suggestions, setSuggestions] = useState([]);
   const [activeSuggestionId, setActiveSuggestionId] = useState(null);
+  const [pickedFileName, setPickedFileName] = useState(null);
   const suppressRef = useRef(false);
 
   // Debounced autocomplete fetch
@@ -46,8 +47,14 @@ export default function SearchForm({
     const file = e.target.files?.[0];
     if (!file) return;
     const stem = file.name.replace(/\.[^.]+$/, '');
+    setPickedFileName(file.name);
     onRomSearch(stem);
     e.target.value = '';
+  };
+
+  const clearRom = () => {
+    setPickedFileName(null);
+    setQuery('');
   };
 
   const selectSuggestion = (name, appId) => {
@@ -105,9 +112,20 @@ export default function SearchForm({
       {mode === 'rom' && (
         <>
           <input ref={romInputRef} type="file" style={{ display: 'none' }} onChange={onRomPick} />
-          <button type="button" className="text-input input-btn" onClick={() => romInputRef.current.click()}>
-            SELECT FILE
-          </button>
+          <div className="input-wrap">
+            <button
+              type="button"
+              className={`text-input input-btn${pickedFileName ? ' input-btn-active' : ''}`}
+              onClick={() => romInputRef.current.click()}
+            >
+              {pickedFileName || 'SELECT FILE'}
+            </button>
+            {pickedFileName && (
+              <button type="button" className="input-clear" onClick={clearRom} aria-label="Clear">
+                <img src="/icon-remove.svg" alt="" width="12" height="12" />
+              </button>
+            )}
+          </div>
         </>
       )}
 
