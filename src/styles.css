@@ -2280,7 +2280,8 @@ button { font-size: 13px !important; }
     min-height: 58px;
     padding: 0 20px;
     flex-shrink: 0;
-    background: var(--gray-dim);
+    background: #111111;
+    border-top: 1px solid var(--border);
     z-index: 10;
     border: none;
     cursor: pointer;
