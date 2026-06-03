@@ -1935,12 +1935,12 @@ button { font-size: 13px !important; }
   padding: 0 2px;
   display: flex;
   align-items: center;
-  opacity: 0.6;
+  opacity: 0.35;
   transition: opacity 120ms;
   flex-shrink: 0;
 }
-.queue-disk-btn img { filter: invert(67%) sepia(98%) saturate(401%) hue-rotate(93deg) brightness(104%); }
 .queue-disk-btn:hover { opacity: 1; }
+.queue-disk-btn:hover img { filter: invert(67%) sepia(98%) saturate(401%) hue-rotate(93deg) brightness(104%); }
 
 .queue-remove {
   background: transparent;
