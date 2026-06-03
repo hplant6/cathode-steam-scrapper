@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import JSZip from 'jszip';
 
 const FSAPI_SUPPORTED = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
@@ -39,6 +39,22 @@ export default function Queue({ items, onRemove, onClearAll, onStatusUpdate, onR
   const [dirHandle, setDirHandle] = useState(null);
   const [saving, setSaving] = useState(false);
   const [zipping, setZipping] = useState(false);
+  const diskInputRef = useRef(null);
+  const renamingIdRef = useRef(null);
+
+  const onDiskPick = (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !renamingIdRef.current) return;
+    const stem = file.name.replace(/\.[^.]+$/, '');
+    onRename(renamingIdRef.current, stem);
+    renamingIdRef.current = null;
+    e.target.value = '';
+  };
+
+  const triggerDiskRename = (id) => {
+    renamingIdRef.current = id;
+    diskInputRef.current?.click();
+  };
 
   const hasPending = items.some((i) => i.status === 'pending');
 
@@ -142,6 +158,7 @@ export default function Queue({ items, onRemove, onClearAll, onStatusUpdate, onR
 
   return (
     <div className="queue">
+      <input ref={diskInputRef} type="file" style={{ display: 'none' }} onChange={onDiskPick} />
       <div className="queue-header">
         <span className="queue-title">DOWNLOAD QUEUE ({items.length})</span>
         {items.length > 0 && (
@@ -179,7 +196,16 @@ export default function Queue({ items, onRemove, onClearAll, onStatusUpdate, onR
               {item.status === 'saved' && <span className="queue-ok"><img src="/icon-check.svg" alt="saved" width="16" height="16" /></span>}
               {item.status === 'error' && <span className="queue-err" title={item.error}><img src="/icon-remove.svg" alt="error" width="16" height="16" /></span>}
               {item.status === 'pending' && (
-                <button className="queue-remove" onClick={() => onRemove(item.id)}><img src="/icon-remove.svg" alt="remove" width="16" height="16" /></button>
+                <>
+                  <button
+                    className="queue-disk-btn"
+                    onClick={() => triggerDiskRename(item.id)}
+                    title="Select as game file to rename these assets for ES-DE"
+                  >
+                    <img src="/icon-disk-drive.svg" alt="rename from file" width="16" height="16" />
+                  </button>
+                  <button className="queue-remove" onClick={() => onRemove(item.id)}><img src="/icon-remove.svg" alt="remove" width="16" height="16" /></button>
+                </>
               )}
             </li>
           ))}

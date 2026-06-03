@@ -1904,6 +1904,20 @@ button { font-size: 13px !important; }
 .queue-err { display: flex; align-items: center; cursor: default; }
 .queue-err img { filter: invert(58%) sepia(60%) saturate(800%) hue-rotate(310deg) brightness(110%); }
 
+.queue-disk-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0 2px;
+  display: flex;
+  align-items: center;
+  opacity: 0.35;
+  transition: opacity 120ms;
+  flex-shrink: 0;
+}
+.queue-disk-btn:hover { opacity: 1; }
+.queue-disk-btn:hover img { filter: invert(67%) sepia(98%) saturate(401%) hue-rotate(93deg) brightness(104%); }
+
 .queue-remove {
   background: transparent;
   border: none;
