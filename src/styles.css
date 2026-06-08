@@ -2156,6 +2156,67 @@ button { font-size: 13px !important; }
   cursor: default;
 }
 
+.setup-bug-card {
+  margin-top: 0;
+  border-top: 1px solid var(--border);
+}
+
+.setup-textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.6;
+  font-family: var(--font-body);
+}
+
+.setup-captcha {
+  min-height: 78px;
+}
+
+.setup-bug-status {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+.setup-bug-error {
+  color: #ff5f5f;
+}
+
+.setup-bug-ok {
+  color: var(--green);
+}
+
+.setup-bug-link {
+  color: var(--green);
+  text-decoration: underline;
+}
+
+.setup-submit-btn {
+  background: transparent;
+  color: var(--cyan);
+  border: 1px solid var(--cyan);
+  border-radius: 4px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  padding: 10px 20px;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background 120ms, color 120ms;
+}
+
+.setup-submit-btn:hover:not(:disabled) {
+  background: var(--cyan);
+  color: #000;
+}
+
+.setup-submit-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
 
 /* ---------- Two-column independent scrolling (iPad / desktop) ---------- */
 

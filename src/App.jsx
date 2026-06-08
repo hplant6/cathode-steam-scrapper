@@ -259,7 +259,7 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [apiKey]);
 
   const onSearch = useCallback(() => {
     if (query.trim()) doSearch(query.trim());
