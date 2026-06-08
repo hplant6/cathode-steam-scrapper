@@ -244,7 +244,7 @@ app.post('/api/report-bug', async (req, res) => {
         'Content-Type': 'application/json',
         'X-GitHub-Api-Version': '2022-11-28',
       },
-      body: JSON.stringify({ title, body, labels: ['bug'] }),
+      body: JSON.stringify({ title, body }),
     });
     if (!r.ok) {
       const msg = await r.text();
